@@ -20,15 +20,16 @@ import (
 
 // Task represents a todo.txt task entry.
 type Task struct {
-	Original      string // Original raw task text
-	Todo          string // Todo part of task text
-	Priority      string
-	Projects      []string
-	Contexts      []string
-	CreatedDate   time.Time
-	DueDate       time.Time
-	CompletedDate time.Time
-	Completed     bool
+	Original       string // Original raw task text
+	Todo           string // Todo part of task text
+	Priority       string
+	Projects       []string
+	Contexts       []string
+	AdditionalTags map[string]string // Addon tags will be available here
+	CreatedDate    time.Time
+	DueDate        time.Time
+	CompletedDate  time.Time
+	Completed      bool
 }
 
 // TaskList represents a list of todo.txt task entries.
@@ -40,19 +41,40 @@ var (
 	DateLayout = "2006-01-02"
 
 	// unexported vars
-	priorityRx    = regexp.MustCompile(`^\(([A-Z])\)\s+`)                              // Match priority: '(A) ...'
-	createdDateRx = regexp.MustCompile(`^(\([A-Z]\)|)\s*([\d]{4}-[\d]{2}-[\d]{2})\s+`) // Match date: '(A) 2012-12-12 ...' or '2012-12-12 ...'
-	dueDateRx     = regexp.MustCompile(`\s+due:([\d]{4}-[\d]{2}-[\d]{2})`)             // Match due date: '... due:2012-12-12 ...'
-	contextRx     = regexp.MustCompile(`(^|\s+)@([[:word:]]+)`)                        // Match contexts: '@Context ...' or '... @Context ...'
-	projectRx     = regexp.MustCompile(`(^|\s+)\+([[:word:]]+)`)                       // Match projects: '+Project...' or '... +Project ...'
+	priorityRx = regexp.MustCompile(`^(x|x \d{4}-\d{2}-\d{2}|)\s*\(([A-Z])\)\s+`) // Match priority: '(A) ...' or 'x (A) ...' or 'x 2012-12-12 (A) ...'
+	// Match created date: '(A) 2012-12-12 ...' or 'x 2012-12-12 (A) 2012-12-12 ...' or 'x 2012-12-12 2012-12-12 ...' or '2012-12-12 ...'
+	createdDateRx   = regexp.MustCompile(`^(\([A-Z]\)|x \d{4}-\d{2}-\d{2} \([A-Z]\)|x \d{4}-\d{2}-\d{2}|)\s*(\d{4}-\d{2}-\d{2})\s+`)
+	completedDateRx = regexp.MustCompile(`^x\s*(\d{4}-\d{2}-\d{2})\s+`) // Match completed date: 'x 2012-12-12 ...'
+	addonTagRx      = regexp.MustCompile(`(^|\s+)([\w-]+):(\S+)`)       // Match additional tags date: '... due:2012-12-12 ...'
+	contextRx       = regexp.MustCompile(`(^|\s+)@(\S+)`)               // Match contexts: '@Context ...' or '... @Context ...'
+	projectRx       = regexp.MustCompile(`(^|\s+)\+(\S+)`)              // Match projects: '+Project...' or '... +Project ...'
 )
+
+// String returns a complete tasklist string in todo.txt format.
+func (tasklist *TaskList) String() (text string) {
+	for _, task := range *tasklist {
+		text += fmt.Sprintf("%s\n", task.String())
+	}
+	return text
+}
 
 // String returns a complete task string in todo.txt format.
 //
+// Contexts,  Projects and additional tags are alphabetically sorted,
+// and appendend at the end in the following order:
+// Contexts, Projects, Tags
+//
 // For example:
-//  "(A) 2013-07-23 Call Dad @Phone +Family due:2013-07-31"
+//  "(A) 2013-07-23 Call Dad @Home @Phone +Family due:2013-07-31 customTag1:Important!"
 func (task *Task) String() string {
 	var text string
+
+	if task.Completed {
+		text += "x "
+		if task.HasCompletedDate() {
+			text += fmt.Sprintf("%s ", task.CompletedDate.Format(DateLayout))
+		}
+	}
 
 	if task.HasPriority() {
 		text += fmt.Sprintf("(%s) ", task.Priority)
@@ -76,6 +98,18 @@ func (task *Task) String() string {
 		}
 	}
 
+	if len(task.AdditionalTags) > 0 {
+		// Sort map alphabetically by keys
+		keys := make([]string, 0, len(task.AdditionalTags))
+		for key, _ := range task.AdditionalTags {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
+		for _, key := range keys {
+			text += fmt.Sprintf(" %s:%s", key, task.AdditionalTags[key])
+		}
+	}
+
 	if task.HasDueDate() {
 		text += fmt.Sprintf(" due:%s", task.DueDate.Format(DateLayout))
 	}
@@ -84,7 +118,7 @@ func (task *Task) String() string {
 }
 
 // Task returns a complete task string in todo.txt format.
-// The same as *Task.String().
+// See *Task.String() for further information.
 func (task *Task) Task() string {
 	return task.String()
 }
@@ -122,9 +156,27 @@ func (tasklist *TaskList) LoadFromFile(file *os.File) error {
 		task := Task{}
 		task.Original = scanner.Text()
 
+		// Ignore blank or comment lines
+		if strings.Trim(task.Original, "\t\n\r ") == "" || strings.HasPrefix(task.Original, "#") {
+			continue
+		}
+
+		// Check for completed
+		if strings.HasPrefix(task.Original, "x ") {
+			task.Completed = true
+			// Check for completed date
+			if completedDateRx.MatchString(task.Original) {
+				if date, err := time.Parse(DateLayout, completedDateRx.FindStringSubmatch(task.Original)[1]); err != nil {
+					return err
+				} else {
+					task.CompletedDate = date
+				}
+			}
+		}
+
 		// Check for priority
 		if priorityRx.MatchString(task.Original) {
-			task.Priority = priorityRx.FindStringSubmatch(task.Original)[1]
+			task.Priority = priorityRx.FindStringSubmatch(task.Original)[2]
 		}
 
 		// Check for created date
@@ -133,15 +185,6 @@ func (tasklist *TaskList) LoadFromFile(file *os.File) error {
 				return err
 			} else {
 				task.CreatedDate = date
-			}
-		}
-
-		// Check for due date
-		if dueDateRx.MatchString(task.Original) {
-			if date, err := time.Parse(DateLayout, dueDateRx.FindStringSubmatch(task.Original)[1]); err != nil {
-				return err
-			} else {
-				task.DueDate = date
 			}
 		}
 
@@ -171,10 +214,37 @@ func (tasklist *TaskList) LoadFromFile(file *os.File) error {
 			task.Projects = getSlice(projectRx)
 		}
 
-		// Todo text
-		// use replacer function here.. strip all other fields from task.Original, then left+right trim --> todo text
-		text := strings.Replace(task.Original, " ", "", -1)
-		task.Todo = text
+		// Check for additional tags
+		if addonTagRx.MatchString(task.Original) {
+			matches := addonTagRx.FindAllStringSubmatch(task.Original, -1)
+			tags := make(map[string]string, len(matches))
+			for _, match := range matches {
+				key, value := match[2], match[3]
+				if key == "due" { // due date is a known addon tag, it has its own struct field
+					if date, err := time.Parse(DateLayout, value); err != nil {
+						return err
+					} else {
+						task.DueDate = date
+					}
+				} else if key != "" && value != "" {
+					tags[key] = value
+				}
+			}
+			task.AdditionalTags = tags
+		}
+
+		text := task.Original
+		if task.Completed {
+			text = text[2:] // Strip 'x '
+			text = completedDateRx.ReplaceAllString(text, "")
+		}
+		// Remove all matching regular expressions from text, so only the actual todo text is left
+		text = priorityRx.ReplaceAllString(text, "")
+		text = createdDateRx.ReplaceAllString(text, "")
+		text = contextRx.ReplaceAllString(text, "")
+		text = projectRx.ReplaceAllString(text, "")
+		text = addonTagRx.ReplaceAllString(text, "")
+		task.Todo = strings.Trim(text, "\t\n\r\f ")
 
 		*tasklist = append(*tasklist, task)
 	}
