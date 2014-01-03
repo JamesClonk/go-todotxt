@@ -11,308 +11,520 @@ import (
 	"time"
 )
 
+var (
+	testInput          = "testdata/input_todo.txt"
+	testOutput         = "testdata/ouput_todo.txt"
+	testExpectedOutput = "testdata/expected_todo.txt"
+	testTasklist       TaskList
+	testExpected       interface{}
+	testGot            interface{}
+)
+
 func TestLoadFromFile(t *testing.T) {
-	file, err := os.Open("testdata/input_todo.txt")
+	file, err := os.Open(testInput)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer file.Close()
 
-	if tasklist, err := LoadFromFile(file); err != nil {
+	if testTasklist, err := LoadFromFile(file); err != nil {
 		t.Fatal(err)
 	} else {
-		loadTest(t, *tasklist)
+		data, err := ioutil.ReadFile(testExpectedOutput)
+		if err != nil {
+			t.Fatal(err)
+		}
+		testExpected := string(data)
+		testGot := testTasklist.String()
+		if testGot != testExpected {
+			t.Errorf("Expected TaskList to be [%s], but got [%s]", testExpected, testGot)
+		}
 	}
 }
 
 func TestLoadFromFilename(t *testing.T) {
-	if tasklist, err := LoadFromFilename("testdata/input_todo.txt"); err != nil {
+	if testTasklist, err := LoadFromFilename(testInput); err != nil {
 		t.Fatal(err)
 	} else {
-		loadTest(t, *tasklist)
+		data, err := ioutil.ReadFile(testExpectedOutput)
+		if err != nil {
+			t.Fatal(err)
+		}
+		testExpected := string(data)
+		testGot := testTasklist.String()
+		if testGot != testExpected {
+			t.Errorf("Expected TaskList to be [%s], but got [%s]", testExpected, testGot)
+		}
 	}
 }
 
-func loadTest(t *testing.T, tasklist TaskList) {
-	taskId := 1
-	var expected, got interface{}
+func TestWriteFile(t *testing.T) {
+	os.Remove(testOutput)
+	os.Create(testOutput)
 	var err error
 
-	// -------------------------------------------------------------------------------------
-	// complete tasklist string
-	data, err := ioutil.ReadFile("testdata/expected_todo.txt")
+	fileInput, err := os.Open(testInput)
 	if err != nil {
 		t.Fatal(err)
 	}
-	expected = string(data)
-	got = tasklist.String()
-	if got != expected {
-		//t.Errorf("Expected TaskList to be [%s], but got [%s]", expected, got)--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-	}
-
-	// -------------------------------------------------------------------------------------
-	// count tasks
-	expected = 10
-	got = len(tasklist)
-	if got != expected {
-		t.Errorf("Expected TaskList to contain %d tasks, but got %d", expected, got)
-	}
-
-	// -------------------------------------------------------------------------------------
-	// complete task strings
-	expected = "2013-02-22 Pick up milk @GroceryStore"
-	got = tasklist[taskId-1].String()
-	if got != expected {
-		t.Errorf("Expected Task[%d] to be [%s], but got [%s]", taskId, expected, got)
-	}
-	taskId++
-
-	expected = "x Download Todo.txt mobile app @Phone"
-	got = tasklist[taskId-1].String()
-	if got != expected {
-		t.Errorf("Expected Task[%d] to be [%s], but got [%s]", taskId, expected, got)
-	}
-	taskId++
-
-	expected = "(B) 2013-12-01 Outline chapter 5 @Computer +Novel Level:5 private:false due:2014-02-17"
-	got = tasklist[taskId-1].Task()
-	if got != expected {
-		t.Errorf("Expected Task[%d] to be [%s], but got [%s]", taskId, expected, got)
-	}
-	taskId++
-
-	expected = "x 2014-01-02 (B) 2013-12-30 Create golang library test cases @Go +go-todotxt"
-	got = tasklist[taskId-1].Task()
-	if got != expected {
-		t.Errorf("Expected Task[%d] to be [%s], but got [%s]", taskId, expected, got)
-	}
-	expected = "1"
-	got = tasklist[taskId-1].Todo
-	if got != expected {
-		t.Errorf("Expected Task[%d] to be [%s], but got [%s]", taskId, expected, got)
-	}
-	taskId++
-
-	expected = "x 2014-01-03 2014-01-01 Create some more golang library test cases @Go +go-todotxt"
-	got = tasklist[taskId-1].Task()
-	if got != expected {
-		t.Errorf("Expected Task[%d] to be [%s], but got [%s]", taskId, expected, got)
-	}
-	taskId++
-
-	// -------------------------------------------------------------------------------------
-	// task priority
-	expected = "B"
-	got = tasklist[taskId-1].Priority
-	if got != expected {
-		t.Errorf("Expected Task[%d] to have priority '%s', but got '%s'", taskId, expected, got)
-	}
-	taskId++
-
-	expected = "C"
-	got = tasklist[taskId-1].Priority
-	if got != expected {
-		t.Errorf("Expected Task[%d] to have priority '%s', but got '%s'", taskId, expected, got)
-	}
-	taskId++
-
-	expected = "B"
-	got = tasklist[taskId-1].Priority
-	if got != expected {
-		t.Errorf("Expected Task[%d] to have priority '%s', but got '%s'", taskId, expected, got)
-	}
-	taskId++
-
-	if tasklist[taskId-1].HasPriority() {
-		t.Errorf("Expected Task[%d] to have no priority, but got '%s'", taskId, tasklist[4].Priority)
-	}
-	taskId++
-
-	// -------------------------------------------------------------------------------------
-	// task created date
-	expected, err = time.Parse(DateLayout, "2012-01-30")
+	defer fileInput.Close()
+	fileOutput, err := os.OpenFile(testOutput, os.O_RDWR, 0644)
 	if err != nil {
 		t.Fatal(err)
 	}
-	got = tasklist[taskId-1].CreatedDate
-	if got != expected {
-		t.Errorf("Expected Task[%d] to have created date '%s', but got '%v'", taskId, expected, got)
-	}
-	taskId++
+	defer fileInput.Close()
 
-	expected, err = time.Parse(DateLayout, "2013-02-22")
+	if testTasklist, err = LoadFromFile(fileInput); err != nil {
+		t.Fatal(err)
+	}
+	if err = WriteToFile(&testTasklist, fileOutput); err != nil {
+		t.Fatal(err)
+	}
+	fileInput.Close()
+	fileOutput, err = os.Open(testOutput)
 	if err != nil {
 		t.Fatal(err)
 	}
-	got = tasklist[taskId-1].CreatedDate
-	if got != expected {
-		t.Errorf("Expected Task[%d] to have created date '%s', but got '%v'", taskId, expected, got)
+	if testTasklist, err = LoadFromFile(fileOutput); err != nil {
+		t.Fatal(err)
 	}
-	taskId++
 
-	expected, err = time.Parse(DateLayout, "2013-12-30")
+	data, err := ioutil.ReadFile(testExpectedOutput)
 	if err != nil {
 		t.Fatal(err)
 	}
-	got = tasklist[taskId-1].CreatedDate
-	if got != expected {
-		t.Errorf("Expected Task[%d] to have created date '%s', but got '%v'", taskId, expected, got)
+	testExpected := string(data)
+	testGot := testTasklist.String()
+	if testGot != testExpected {
+		t.Errorf("Expected TaskList to be [%s], but got [%s]", testExpected, testGot)
 	}
-	taskId++
+}
 
-	expected, err = time.Parse(DateLayout, "2014-01-01")
+func TestTaskListWriteFile(t *testing.T) {
+	os.Remove(testOutput)
+	os.Create(testOutput)
+	testTasklist := TaskList{}
+
+	fileInput, err := os.Open(testInput)
 	if err != nil {
 		t.Fatal(err)
 	}
-	got = tasklist[taskId-1].CreatedDate
-	if got != expected {
-		t.Errorf("Expected Task[%d] to have created date '%s', but got '%v'", taskId, expected, got)
-	}
-	taskId++
-
-	if tasklist[taskId-1].HasCreatedDate() {
-		t.Errorf("Expected Task[%d] to have no created date, but got '%v'", taskId, tasklist[4].CreatedDate)
-	}
-	taskId++
-
-	// -------------------------------------------------------------------------------------
-	// task contexts
-	expected = []string{"Call", "Phone"}
-	got = tasklist[taskId-1].Contexts
-	if !compareSlices(got.([]string), expected.([]string)) {
-		t.Errorf("Expected Task[%d] to have contexts '%v', but got '%v'", taskId, expected, got)
-	}
-	taskId++
-
-	expected = []string{"Office"}
-	got = tasklist[taskId-1].Contexts
-	if !compareSlices(got.([]string), expected.([]string)) {
-		t.Errorf("Expected Task[%d] to have contexts '%v', but got '%v'", taskId, expected, got)
-	}
-	taskId++
-
-	expected = []string{"Electricity", "Home", "Television"}
-	got = tasklist[taskId-1].Contexts
-	if !compareSlices(got.([]string), expected.([]string)) {
-		t.Errorf("Expected Task[%d] to have contexts '%v', but got '%v'", taskId, expected, got)
-	}
-	taskId++
-
-	expected = []string{}
-	got = tasklist[taskId-1].Contexts
-	if !compareSlices(got.([]string), expected.([]string)) {
-		t.Errorf("Expected Task[%d] to have no contexts, but got '%v'", taskId, got)
-	}
-	taskId++
-
-	// -------------------------------------------------------------------------------------
-	// task projects
-	expected = []string{"Gardening", "Improving", "Planning"}
-	got = tasklist[taskId-1].Projects
-	if !compareSlices(got.([]string), expected.([]string)) {
-		t.Errorf("Expected Task[%d] to have projects '%v', but got '%v'", taskId, expected, got)
-	}
-	taskId++
-
-	expected = []string{"Novel"}
-	got = tasklist[taskId-1].Projects
-	if !compareSlices(got.([]string), expected.([]string)) {
-		t.Errorf("Expected Task[%d] to have projects '%v', but got '%v'", taskId, expected, got)
-	}
-	taskId++
-
-	expected = []string{}
-	got = tasklist[taskId-1].Projects
-	if !compareSlices(got.([]string), expected.([]string)) {
-		t.Errorf("Expected Task[%d] to have no projects, but got '%v'", taskId, got)
-	}
-	taskId++
-
-	// -------------------------------------------------------------------------------------
-	// task due date
-	expected, err = time.Parse(DateLayout, "2014-02-17")
+	defer fileInput.Close()
+	fileOutput, err := os.OpenFile(testOutput, os.O_RDWR, 0644)
 	if err != nil {
 		t.Fatal(err)
 	}
-	got = tasklist[taskId-1].DueDate
-	if got != expected {
-		t.Errorf("Expected Task[%d] to have due date '%s', but got '%v'", taskId, expected, got)
+	defer fileInput.Close()
+
+	if err := testTasklist.LoadFromFile(fileInput); err != nil {
+		t.Fatal(err)
+	}
+	if err := testTasklist.WriteToFile(fileOutput); err != nil {
+		t.Fatal(err)
+	}
+	fileInput.Close()
+	fileOutput, err = os.Open(testOutput)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := testTasklist.LoadFromFile(fileOutput); err != nil {
+		t.Fatal(err)
+	}
+
+	data, err := ioutil.ReadFile(testExpectedOutput)
+	if err != nil {
+		t.Fatal(err)
+	}
+	testExpected := string(data)
+	testGot := testTasklist.String()
+	if testGot != testExpected {
+		t.Errorf("Expected TaskList to be [%s], but got [%s]", testExpected, testGot)
+	}
+}
+
+func TestWriteFilename(t *testing.T) {
+	os.Remove(testOutput)
+	var err error
+
+	if testTasklist, err = LoadFromFilename(testInput); err != nil {
+		t.Fatal(err)
+	}
+	if err = WriteToFilename(&testTasklist, testOutput); err != nil {
+		t.Fatal(err)
+	}
+	if testTasklist, err = LoadFromFilename(testOutput); err != nil {
+		t.Fatal(err)
+	}
+
+	data, err := ioutil.ReadFile(testExpectedOutput)
+	if err != nil {
+		t.Fatal(err)
+	}
+	testExpected := string(data)
+	testGot := testTasklist.String()
+	if testGot != testExpected {
+		t.Errorf("Expected TaskList to be [%s], but got [%s]", testExpected, testGot)
+	}
+}
+
+func TestTaskListWriteFilename(t *testing.T) {
+	os.Remove(testOutput)
+	testTasklist := TaskList{}
+
+	if err := testTasklist.LoadFromFilename(testInput); err != nil {
+		t.Fatal(err)
+	}
+	if err := testTasklist.WriteToFilename(testOutput); err != nil {
+		t.Fatal(err)
+	}
+	if err := testTasklist.LoadFromFilename(testOutput); err != nil {
+		t.Fatal(err)
+	}
+
+	data, err := ioutil.ReadFile(testExpectedOutput)
+	if err != nil {
+		t.Fatal(err)
+	}
+	testExpected := string(data)
+	testGot := testTasklist.String()
+	if testGot != testExpected {
+		t.Errorf("Expected TaskList to be [%s], but got [%s]", testExpected, testGot)
+	}
+}
+
+func TestTaskListCount(t *testing.T) {
+	testTasklist.LoadFromFilename(testInput)
+
+	testExpected := 38
+	testGot := len(testTasklist)
+	if testGot != testExpected {
+		t.Errorf("Expected TaskList to contain %d tasks, but got %d", testExpected, testGot)
+	}
+}
+
+func TestTaskString(t *testing.T) {
+	testTasklist.LoadFromFilename(testInput)
+	taskId := 1
+
+	testExpected = "2013-02-22 Pick up milk @GroceryStore"
+	testGot = testTasklist[taskId-1].String()
+	if testGot != testExpected {
+		t.Errorf("Expected Task[%d] to be [%s], but got [%s]", taskId, testExpected, testGot)
 	}
 	taskId++
 
-	if tasklist[taskId-1].HasDueDate() {
-		t.Errorf("Expected Task[%d] to have no due date, but got '%v'", taskId, tasklist[taskId-1].DueDate)
+	testExpected = "x Download Todo.txt mobile app @Phone"
+	testGot = testTasklist[taskId-1].String()
+	if testGot != testExpected {
+		t.Errorf("Expected Task[%d] to be [%s], but got [%s]", taskId, testExpected, testGot)
 	}
 	taskId++
 
-	// -------------------------------------------------------------------------------------
-	// task addon tags
-	expected = map[string]string{"Level": "5", "private": "false"}
-	got = tasklist[taskId-1].AdditionalTags
-	if len(got.(map[string]string)) != 2 ||
-		!compareMaps(got.(map[string]string), expected.(map[string]string)) {
-		t.Errorf("Expected Task[%d] to have addon tags '%v', but got '%v'", taskId, expected, got)
+	testExpected = "(B) 2013-12-01 Outline chapter 5 @Computer +Novel Level:5 private:false due:2014-02-17"
+	testGot = testTasklist[taskId-1].Task()
+	if testGot != testExpected {
+		t.Errorf("Expected Task[%d] to be [%s], but got [%s]", taskId, testExpected, testGot)
 	}
 	taskId++
 
-	expected = map[string]string{"Importance": "Very!"}
-	got = tasklist[taskId-1].AdditionalTags
-	if len(got.(map[string]string)) != 1 ||
-		!compareMaps(got.(map[string]string), expected.(map[string]string)) {
-		t.Errorf("Expected Task[%d] to have projects '%v', but got '%v'", taskId, expected, got)
+	testExpected = "x 2014-01-02 (B) 2013-12-30 Create golang library test cases @Go +go-todotxt"
+	testGot = testTasklist[taskId-1].Task()
+	if testGot != testExpected {
+		t.Errorf("Expected Task[%d] to be [%s], but got [%s]", taskId, testExpected, testGot)
 	}
 	taskId++
 
-	expected = map[string]string{}
-	got = tasklist[taskId-1].AdditionalTags
-	if len(got.(map[string]string)) != 0 ||
-		!compareMaps(got.(map[string]string), expected.(map[string]string)) {
-		t.Errorf("Expected Task[%d] to have no additional tags, but got '%v'", taskId, got)
+	testExpected = "x 2014-01-03 2014-01-01 Create some more golang library test cases @Go +go-todotxt"
+	testGot = testTasklist[taskId-1].Task()
+	if testGot != testExpected {
+		t.Errorf("Expected Task[%d] to be [%s], but got [%s]", taskId, testExpected, testGot)
+	}
+	taskId++
+}
+
+func TestTaskPriority(t *testing.T) {
+	testTasklist.LoadFromFilename(testInput)
+	taskId := 6
+
+	testExpected = "B"
+	testGot = testTasklist[taskId-1].Priority
+	if testGot != testExpected {
+		t.Errorf("Expected Task[%d] to have priority '%s', but got '%s'", taskId, testExpected, testGot)
 	}
 	taskId++
 
-	expected = map[string]string{}
-	got = tasklist[taskId-1].AdditionalTags
-	if len(got.(map[string]string)) != 0 ||
-		!compareMaps(got.(map[string]string), expected.(map[string]string)) {
-		t.Errorf("Expected Task[%d] to have no additional tags, but got '%v'", taskId, got)
+	testExpected = "C"
+	testGot = testTasklist[taskId-1].Priority
+	if testGot != testExpected {
+		t.Errorf("Expected Task[%d] to have priority '%s', but got '%s'", taskId, testExpected, testGot)
 	}
 	taskId++
 
-	// -------------------------------------------------------------------------------------
-	// task completed
-	expected = true
-	got = tasklist[taskId-1].Completed
-	if got != expected {
-		t.Errorf("Expected Task[%d] to be completed, but got '%v'", taskId, got)
+	testExpected = "B"
+	testGot = testTasklist[taskId-1].Priority
+	if testGot != testExpected {
+		t.Errorf("Expected Task[%d] to have priority '%s', but got '%s'", taskId, testExpected, testGot)
 	}
 	taskId++
 
-	expected = true
-	got = tasklist[taskId-1].Completed
-	if got != expected {
-		t.Errorf("Expected Task[%d] to be completed, but got '%v'", taskId, got)
+	if testTasklist[taskId-1].HasPriority() {
+		t.Errorf("Expected Task[%d] to have no priority, but got '%s'", taskId, testTasklist[4].Priority)
+	}
+	taskId++
+}
+
+func TestTaskCreatedDate(t *testing.T) {
+	testTasklist.LoadFromFilename(testInput)
+	taskId := 10
+
+	testExpected, err := time.Parse(DateLayout, "2012-01-30")
+	if err != nil {
+		t.Fatal(err)
+	}
+	testGot = testTasklist[taskId-1].CreatedDate
+	if testGot != testExpected {
+		t.Errorf("Expected Task[%d] to have created date '%s', but got '%v'", taskId, testExpected, testGot)
 	}
 	taskId++
 
-	expected = true
-	got = tasklist[taskId-1].Completed
-	if got != expected {
-		t.Errorf("Expected Task[%d] to be completed, but got '%v'", taskId, got)
+	testExpected, err = time.Parse(DateLayout, "2013-02-22")
+	if err != nil {
+		t.Fatal(err)
+	}
+	testGot = testTasklist[taskId-1].CreatedDate
+	if testGot != testExpected {
+		t.Errorf("Expected Task[%d] to have created date '%s', but got '%v'", taskId, testExpected, testGot)
 	}
 	taskId++
 
-	expected = false
-	got = tasklist[taskId-1].Completed
-	if got != expected {
-		t.Errorf("Expected Task[%d] to not be completed, but got '%v'", taskId, got)
+	testExpected, err = time.Parse(DateLayout, "2013-12-30")
+	if err != nil {
+		t.Fatal(err)
+	}
+	testGot = testTasklist[taskId-1].CreatedDate
+	if testGot != testExpected {
+		t.Errorf("Expected Task[%d] to have created date '%s', but got '%v'", taskId, testExpected, testGot)
 	}
 	taskId++
 
-	expected = false
-	got = tasklist[taskId-1].Completed
-	if got != expected {
-		t.Errorf("Expected Task[%d] to not be completed, but got '%v'", taskId, got)
+	testExpected, err = time.Parse(DateLayout, "2014-01-01")
+	if err != nil {
+		t.Fatal(err)
+	}
+	testGot = testTasklist[taskId-1].CreatedDate
+	if testGot != testExpected {
+		t.Errorf("Expected Task[%d] to have created date '%s', but got '%v'", taskId, testExpected, testGot)
+	}
+	taskId++
+
+	if testTasklist[taskId-1].HasCreatedDate() {
+		t.Errorf("Expected Task[%d] to have no created date, but got '%v'", taskId, testTasklist[4].CreatedDate)
+	}
+	taskId++
+}
+
+func TestTaskContexts(t *testing.T) {
+	testTasklist.LoadFromFilename(testInput)
+	taskId := 15
+
+	testExpected = []string{"Call", "Phone"}
+	testGot = testTasklist[taskId-1].Contexts
+	if !compareSlices(testGot.([]string), testExpected.([]string)) {
+		t.Errorf("Expected Task[%d] to have contexts '%v', but got '%v'", taskId, testExpected, testGot)
+	}
+	taskId++
+
+	testExpected = []string{"Office"}
+	testGot = testTasklist[taskId-1].Contexts
+	if !compareSlices(testGot.([]string), testExpected.([]string)) {
+		t.Errorf("Expected Task[%d] to have contexts '%v', but got '%v'", taskId, testExpected, testGot)
+	}
+	taskId++
+
+	testExpected = []string{"Electricity", "Home", "Of_Super-Importance", "Television"}
+	testGot = testTasklist[taskId-1].Contexts
+	if !compareSlices(testGot.([]string), testExpected.([]string)) {
+		t.Errorf("Expected Task[%d] to have contexts '%v', but got '%v'", taskId, testExpected, testGot)
+	}
+	taskId++
+
+	testExpected = []string{}
+	testGot = testTasklist[taskId-1].Contexts
+	if !compareSlices(testGot.([]string), testExpected.([]string)) {
+		t.Errorf("Expected Task[%d] to have no contexts, but got '%v'", taskId, testGot)
+	}
+	taskId++
+}
+
+func TestTasksProjects(t *testing.T) {
+	testTasklist.LoadFromFilename(testInput)
+	taskId := 19
+
+	testExpected = []string{"Gardening", "Improving", "Planning", "Relaxing-Work"}
+	testGot = testTasklist[taskId-1].Projects
+	if !compareSlices(testGot.([]string), testExpected.([]string)) {
+		t.Errorf("Expected Task[%d] to have projects '%v', but got '%v'", taskId, testExpected, testGot)
+	}
+	taskId++
+
+	testExpected = []string{"Novel"}
+	testGot = testTasklist[taskId-1].Projects
+	if !compareSlices(testGot.([]string), testExpected.([]string)) {
+		t.Errorf("Expected Task[%d] to have projects '%v', but got '%v'", taskId, testExpected, testGot)
+	}
+	taskId++
+
+	testExpected = []string{}
+	testGot = testTasklist[taskId-1].Projects
+	if !compareSlices(testGot.([]string), testExpected.([]string)) {
+		t.Errorf("Expected Task[%d] to have no projects, but got '%v'", taskId, testGot)
+	}
+	taskId++
+}
+
+func TestTaskDueDate(t *testing.T) {
+	testTasklist.LoadFromFilename(testInput)
+	taskId := 22
+
+	testExpected, err := time.Parse(DateLayout, "2014-02-17")
+	if err != nil {
+		t.Fatal(err)
+	}
+	testGot = testTasklist[taskId-1].DueDate
+	if testGot != testExpected {
+		t.Errorf("Expected Task[%d] to have due date '%s', but got '%v'", taskId, testExpected, testGot)
+	}
+	taskId++
+
+	if testTasklist[taskId-1].HasDueDate() {
+		t.Errorf("Expected Task[%d] to have no due date, but got '%v'", taskId, testTasklist[taskId-1].DueDate)
+	}
+	taskId++
+}
+
+func TestTaskAddonTags(t *testing.T) {
+	testTasklist.LoadFromFilename(testInput)
+	taskId := 24
+
+	testExpected = map[string]string{"Level": "5", "private": "false"}
+	testGot = testTasklist[taskId-1].AdditionalTags
+	if len(testGot.(map[string]string)) != 2 ||
+		!compareMaps(testGot.(map[string]string), testExpected.(map[string]string)) {
+		t.Errorf("Expected Task[%d] to have addon tags '%v', but got '%v'", taskId, testExpected, testGot)
+	}
+	taskId++
+
+	testExpected = map[string]string{"Importance": "Very!"}
+	testGot = testTasklist[taskId-1].AdditionalTags
+	if len(testGot.(map[string]string)) != 1 ||
+		!compareMaps(testGot.(map[string]string), testExpected.(map[string]string)) {
+		t.Errorf("Expected Task[%d] to have projects '%v', but got '%v'", taskId, testExpected, testGot)
+	}
+	taskId++
+
+	testExpected = map[string]string{}
+	testGot = testTasklist[taskId-1].AdditionalTags
+	if len(testGot.(map[string]string)) != 0 ||
+		!compareMaps(testGot.(map[string]string), testExpected.(map[string]string)) {
+		t.Errorf("Expected Task[%d] to have no additional tags, but got '%v'", taskId, testGot)
+	}
+	taskId++
+
+	testExpected = map[string]string{}
+	testGot = testTasklist[taskId-1].AdditionalTags
+	if len(testGot.(map[string]string)) != 0 ||
+		!compareMaps(testGot.(map[string]string), testExpected.(map[string]string)) {
+		t.Errorf("Expected Task[%d] to have no additional tags, but got '%v'", taskId, testGot)
+	}
+	taskId++
+}
+
+func TestTaskCompleted(t *testing.T) {
+	testTasklist.LoadFromFilename(testInput)
+	taskId := 28
+
+	testExpected = true
+	testGot = testTasklist[taskId-1].Completed
+	if testGot != testExpected {
+		t.Errorf("Expected Task[%d] not to completed, but got '%v'", taskId, testGot)
+	}
+	taskId++
+
+	testExpected = true
+	testGot = testTasklist[taskId-1].Completed
+	if testGot != testExpected {
+		t.Errorf("Expected Task[%d] not to completed, but got '%v'", taskId, testGot)
+	}
+	taskId++
+
+	testExpected = true
+	testGot = testTasklist[taskId-1].Completed
+	if testGot != testExpected {
+		t.Errorf("Expected Task[%d] not to completed, but got '%v'", taskId, testGot)
+	}
+	taskId++
+
+	testExpected = false
+	testGot = testTasklist[taskId-1].Completed
+	if testGot != testExpected {
+		t.Errorf("Expected Task[%d] not to be completed, but got '%v'", taskId, testGot)
+	}
+	taskId++
+
+	testExpected = false
+	testGot = testTasklist[taskId-1].Completed
+	if testGot != testExpected {
+		t.Errorf("Expected Task[%d] not to be completed, but got '%v'", taskId, testGot)
+	}
+	taskId++
+}
+
+func TestTaskCompletedDate(t *testing.T) {
+	testTasklist.LoadFromFilename(testInput)
+	taskId := 33
+
+	if testTasklist[taskId-1].HasCompletedDate() {
+		t.Errorf("Expected Task[%d] to not have a completed date, but got '%v'", taskId, testTasklist[taskId-1].CompletedDate)
+	}
+	taskId++
+
+	testExpected, err := time.Parse(DateLayout, "2014-01-03")
+	if err != nil {
+		t.Fatal(err)
+	}
+	testGot = testTasklist[taskId-1].CompletedDate
+	if testGot != testExpected {
+		t.Errorf("Expected Task[%d] to have completed date '%s', but got '%v'", taskId, testExpected, testGot)
+	}
+	taskId++
+
+	if testTasklist[taskId-1].HasCompletedDate() {
+		t.Errorf("Expected Task[%d] to not have a completed date, but got '%v'", taskId, testTasklist[taskId-1].CompletedDate)
+	}
+	taskId++
+
+	testExpected, err = time.Parse(DateLayout, "2014-01-02")
+	if err != nil {
+		t.Fatal(err)
+	}
+	testGot = testTasklist[taskId-1].CompletedDate
+	if testGot != testExpected {
+		t.Errorf("Expected Task[%d] to have completed date '%s', but got '%v'", taskId, testExpected, testGot)
+	}
+	taskId++
+
+	testExpected, err = time.Parse(DateLayout, "2014-01-03")
+	if err != nil {
+		t.Fatal(err)
+	}
+	testGot = testTasklist[taskId-1].CompletedDate
+	if testGot != testExpected {
+		t.Errorf("Expected Task[%d] to have completed date '%s', but got '%v'", taskId, testExpected, testGot)
+	}
+	taskId++
+
+	if testTasklist[taskId-1].HasCompletedDate() {
+		t.Errorf("Expected Task[%d] to not have a completed date, but got '%v'", taskId, testTasklist[taskId-1].CompletedDate)
 	}
 	taskId++
 }

@@ -16,6 +16,10 @@ It allows for parsing and manipulating of task lists and tasks in the todo.txt f
 
 go-todotxt requires Go1.1 or higher.
 
+## Usage
+
+...
+
 ## Documentation
 
 See [GoDoc - Documentation](https://godoc.org/github.com/JamesClonk/go-todotxt) for further documentation.

@@ -11,6 +11,7 @@ package todotxt
 import (
 	"bufio"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"regexp"
 	"sort"
@@ -20,12 +21,12 @@ import (
 
 // Task represents a todo.txt task entry.
 type Task struct {
-	Original       string // Original raw task text
-	Todo           string // Todo part of task text
+	Original       string // Original raw task text.
+	Todo           string // Todo part of task text.
 	Priority       string
 	Projects       []string
 	Contexts       []string
-	AdditionalTags map[string]string // Addon tags will be available here
+	AdditionalTags map[string]string // Addon tags will be available here.
 	CreatedDate    time.Time
 	DueDate        time.Time
 	CompletedDate  time.Time
@@ -36,14 +37,19 @@ type Task struct {
 // It is usually loaded from a whole todo.txt file.
 type TaskList []Task
 
+// IgnoreComments can be set to 'false', in order to revert to more standard todo.txt behaviour.
+// The todo.txt format does not define comments.
 var (
-	// Used for formatting time.Time into todo.txt date format.
+	// Used for formatting time.Time into todo.txt date format and vice-versa.
 	DateLayout = "2006-01-02"
+	// Ignores comments (Lines/Text starting with "#").
+	IgnoreComments = true
 
 	// unexported vars
 	priorityRx = regexp.MustCompile(`^(x|x \d{4}-\d{2}-\d{2}|)\s*\(([A-Z])\)\s+`) // Match priority: '(A) ...' or 'x (A) ...' or 'x 2012-12-12 (A) ...'
 	// Match created date: '(A) 2012-12-12 ...' or 'x 2012-12-12 (A) 2012-12-12 ...' or 'x 2012-12-12 2012-12-12 ...' or '2012-12-12 ...'
 	createdDateRx   = regexp.MustCompile(`^(\([A-Z]\)|x \d{4}-\d{2}-\d{2} \([A-Z]\)|x \d{4}-\d{2}-\d{2}|)\s*(\d{4}-\d{2}-\d{2})\s+`)
+	completedRx     = regexp.MustCompile(`^x\s+`)                       // Match completed: 'x ...'
 	completedDateRx = regexp.MustCompile(`^x\s*(\d{4}-\d{2}-\d{2})\s+`) // Match completed date: 'x 2012-12-12 ...'
 	addonTagRx      = regexp.MustCompile(`(^|\s+)([\w-]+):(\S+)`)       // Match additional tags date: '... due:2012-12-12 ...'
 	contextRx       = regexp.MustCompile(`(^|\s+)@(\S+)`)               // Match contexts: '@Context ...' or '... @Context ...'
@@ -51,8 +57,8 @@ var (
 )
 
 // String returns a complete tasklist string in todo.txt format.
-func (tasklist *TaskList) String() (text string) {
-	for _, task := range *tasklist {
+func (tasklist TaskList) String() (text string) {
+	for _, task := range tasklist {
 		text += fmt.Sprintf("%s\n", task.String())
 	}
 	return text
@@ -66,7 +72,7 @@ func (tasklist *TaskList) String() (text string) {
 //
 // For example:
 //  "(A) 2013-07-23 Call Dad @Home @Phone +Family due:2013-07-31 customTag1:Important!"
-func (task *Task) String() string {
+func (task Task) String() string {
 	var text string
 
 	if task.Completed {
@@ -154,15 +160,16 @@ func (tasklist *TaskList) LoadFromFile(file *os.File) error {
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		task := Task{}
-		task.Original = scanner.Text()
+		task.Original = strings.Trim(scanner.Text(), "\t\n\r ") // Read line
+		task.Todo = task.Original
 
 		// Ignore blank or comment lines
-		if strings.Trim(task.Original, "\t\n\r ") == "" || strings.HasPrefix(task.Original, "#") {
+		if task.Todo == "" || (IgnoreComments && strings.HasPrefix(task.Todo, "#")) {
 			continue
 		}
 
 		// Check for completed
-		if strings.HasPrefix(task.Original, "x ") {
+		if completedRx.MatchString(task.Original) {
 			task.Completed = true
 			// Check for completed date
 			if completedDateRx.MatchString(task.Original) {
@@ -172,11 +179,16 @@ func (tasklist *TaskList) LoadFromFile(file *os.File) error {
 					task.CompletedDate = date
 				}
 			}
+
+			// Remove from Todo text
+			task.Todo = completedDateRx.ReplaceAllString(task.Todo, "") // Strip CompletedDate first, otherwise it wouldn't match anymore (^x date...)
+			task.Todo = completedRx.ReplaceAllString(task.Todo, "")     // Strip 'x '
 		}
 
 		// Check for priority
 		if priorityRx.MatchString(task.Original) {
 			task.Priority = priorityRx.FindStringSubmatch(task.Original)[2]
+			task.Todo = priorityRx.ReplaceAllString(task.Todo, "") // Remove from Todo text
 		}
 
 		// Check for created date
@@ -185,6 +197,7 @@ func (tasklist *TaskList) LoadFromFile(file *os.File) error {
 				return err
 			} else {
 				task.CreatedDate = date
+				task.Todo = createdDateRx.ReplaceAllString(task.Todo, "") // Remove from Todo text
 			}
 		}
 
@@ -207,11 +220,13 @@ func (tasklist *TaskList) LoadFromFile(file *os.File) error {
 		// Check for contexts
 		if contextRx.MatchString(task.Original) {
 			task.Contexts = getSlice(contextRx)
+			task.Todo = contextRx.ReplaceAllString(task.Todo, "") // Remove from Todo text
 		}
 
 		// Check for projects
 		if projectRx.MatchString(task.Original) {
 			task.Projects = getSlice(projectRx)
+			task.Todo = projectRx.ReplaceAllString(task.Todo, "") // Remove from Todo text
 		}
 
 		// Check for additional tags
@@ -231,20 +246,11 @@ func (tasklist *TaskList) LoadFromFile(file *os.File) error {
 				}
 			}
 			task.AdditionalTags = tags
+			task.Todo = addonTagRx.ReplaceAllString(task.Todo, "") // Remove from Todo text
 		}
 
-		text := task.Original
-		if task.Completed {
-			text = text[2:] // Strip 'x '
-			text = completedDateRx.ReplaceAllString(text, "")
-		}
-		// Remove all matching regular expressions from text, so only the actual todo text is left
-		text = priorityRx.ReplaceAllString(text, "")
-		text = createdDateRx.ReplaceAllString(text, "")
-		text = contextRx.ReplaceAllString(text, "")
-		text = projectRx.ReplaceAllString(text, "")
-		text = addonTagRx.ReplaceAllString(text, "")
-		task.Todo = strings.Trim(text, "\t\n\r\f ")
+		// Trim any remaining whitespaces from Todo text
+		task.Todo = strings.Trim(task.Todo, "\t\n\r\f ")
 
 		*tasklist = append(*tasklist, task)
 	}
@@ -253,6 +259,16 @@ func (tasklist *TaskList) LoadFromFile(file *os.File) error {
 	}
 
 	return nil
+}
+
+// WriteToFile writes a TaskList to *os.File.
+//
+// Using *os.File instead of a filename allows to also use os.Stdout.
+func (tasklist *TaskList) WriteToFile(file *os.File) error {
+	writer := bufio.NewWriter(file)
+	_, err := writer.WriteString(tasklist.String())
+	writer.Flush()
+	return err
 }
 
 // LoadFromFilename loads a TaskList from a file (most likely called "todo.txt").
@@ -268,18 +284,35 @@ func (tasklist *TaskList) LoadFromFilename(filename string) error {
 	return tasklist.LoadFromFile(file)
 }
 
+// WriteToFilename writes a TaskList to the specified file (most likely called "todo.txt").
+func (tasklist *TaskList) WriteToFilename(filename string) error {
+	return ioutil.WriteFile(filename, []byte(tasklist.String()), 0644)
+}
+
 // LoadFromFile loads and returns a TaskList from *os.File.
 //
 // Using *os.File instead of a filename allows to also use os.Stdin.
-func LoadFromFile(file *os.File) (*TaskList, error) {
-	tasklist := &TaskList{}
+func LoadFromFile(file *os.File) (TaskList, error) {
+	tasklist := TaskList{}
 	err := tasklist.LoadFromFile(file)
 	return tasklist, err
 }
 
+// WriteToFile writes a TaskList to *os.File.
+//
+// Using *os.File instead of a filename allows to also use os.Stdout.
+func WriteToFile(tasklist *TaskList, file *os.File) error {
+	return tasklist.WriteToFile(file)
+}
+
 // LoadFromFilename loads and returns a TaskList from a file (most likely called "todo.txt").
-func LoadFromFilename(filename string) (*TaskList, error) {
-	tasklist := &TaskList{}
+func LoadFromFilename(filename string) (TaskList, error) {
+	tasklist := TaskList{}
 	err := tasklist.LoadFromFilename(filename)
 	return tasklist, err
+}
+
+// WriteToFilename writes a TaskList to the specified file (most likely called "todo.txt").
+func WriteToFilename(tasklist *TaskList, filename string) error {
+	return tasklist.WriteToFilename(filename)
 }
