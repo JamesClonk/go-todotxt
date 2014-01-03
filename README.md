@@ -1,12 +1,12 @@
 go-todotxt
 ==========
 
-A Go todo.txt library.      
+A Go todo.txt library.  
+
+[![GoDoc](https://godoc.org/github.com/JamesClonk/go-todotxt?status.png)](https://godoc.org/github.com/JamesClonk/go-todotxt)    
 
 The Package todotxt is a Go client library for Gina Trapani's [todo.txt](https://github.com/ginatrapani/todo.txt-cli/) files.
 It allows for parsing and manipulating of task lists and tasks in the todo.txt format.
-
-[![GoDoc](https://godoc.org/github.com/JamesClonk/go-todotxt?status.png)](https://godoc.org/github.com/JamesClonk/go-todotxt)
 
 ## Installation
 

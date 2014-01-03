@@ -38,7 +38,7 @@ func loadTest(t *testing.T, tasklist TaskList) {
 
 	// -------------------------------------------------------------------------------------
 	// count tasks
-	expected = 8
+	expected = 9
 	got = len(tasklist)
 	if got != expected {
 		t.Errorf("Expected TaskList to contain %d tasks, but got %d", expected, got)
@@ -52,7 +52,7 @@ func loadTest(t *testing.T, tasklist TaskList) {
 		t.Errorf("Expected eight Task to be [%s], but got [%s]", expected, got)
 	}
 
-	expected = "(B) 2013-12-01 Outline chapter 5 +Novel @Computer due:2014-01-01"
+	expected = "(B) 2013-12-01 Outline chapter 5 @Computer +Novel due:2014-01-01"
 	got = tasklist[2].Task()
 	if got != expected {
 		t.Errorf("Expected third Task to be [%s], but got [%s]", expected, got)
@@ -95,8 +95,54 @@ func loadTest(t *testing.T, tasklist TaskList) {
 	}
 
 	// -------------------------------------------------------------------------------------
+	// task contexts
+	expected = []string{"Call", "Phone"}
+	got = tasklist[0].Contexts
+	if !compareSlices(got.([]string), expected.([]string)) {
+		t.Errorf("Expected first task to have contexts '%v', but got '%v'", expected, got)
+	}
+
+	expected = []string{"Office"}
+	got = tasklist[3].Contexts
+	if !compareSlices(got.([]string), expected.([]string)) {
+		t.Errorf("Expected fourth task to have contexts '%v', but got '%v'", expected, got)
+	}
+
+	expected = []string{"Electricity", "Home", "Television"}
+	got = tasklist[8].Contexts
+	if !compareSlices(got.([]string), expected.([]string)) {
+		t.Errorf("Expected ninth task to have contexts '%v', but got '%v'", expected, got)
+	}
+
+	expected = []string{}
+	got = tasklist[6].Contexts
+	if !compareSlices(got.([]string), expected.([]string)) {
+		t.Errorf("Expected seventh task to have no contexts, but got '%v'", got)
+	}
+
+	// -------------------------------------------------------------------------------------
+	// task projects
+	expected = []string{"Gardening", "Improving", "Planning"}
+	got = tasklist[4].Projects
+	if !compareSlices(got.([]string), expected.([]string)) {
+		t.Errorf("Expected fifth task to have projects '%v', but got '%v'", expected, got)
+	}
+
+	expected = []string{"Novel"}
+	got = tasklist[6].Projects
+	if !compareSlices(got.([]string), expected.([]string)) {
+		t.Errorf("Expected sixth task to have projects '%v', but got '%v'", expected, got)
+	}
+
+	expected = []string{}
+	got = tasklist[8].Projects
+	if !compareSlices(got.([]string), expected.([]string)) {
+		t.Errorf("Expected ninth task to have no projects, but got '%v'", got)
+	}
+
+	// -------------------------------------------------------------------------------------
 	// task due date
-	expected, err = time.Parse(DateLayout, "2014-01-01")
+	expected, err = time.Parse(DateLayout, "2014-02-17")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -108,4 +154,18 @@ func loadTest(t *testing.T, tasklist TaskList) {
 	if tasklist[0].HasDueDate() {
 		t.Errorf("Expected first task to have no due date, but got '%v'", tasklist[0].DueDate)
 	}
+}
+
+func compareSlices(list1 []string, list2 []string) bool {
+	if len(list1) != len(list2) {
+		return false
+	}
+
+	for i := range list1 {
+		if list1[i] != list2[i] {
+			return false
+		}
+	}
+
+	return true
 }

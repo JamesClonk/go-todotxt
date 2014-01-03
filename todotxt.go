@@ -13,6 +13,8 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"sort"
+	"strings"
 	"time"
 )
 
@@ -38,8 +40,11 @@ var (
 	DateLayout = "2006-01-02"
 
 	// unexported vars
-	priorityRx    = regexp.MustCompile(`^\(([A-Z])\)\s+`)                              // Match priority value: '(A) ...'
-	createdDateRx = regexp.MustCompile(`^(\([A-Z]\)|)\s*([\d]{4}-[\d]{2}-[\d]{2})\s+`) // Match date value: '(A) 2012-12-12 ...' or '2012-12-12 ...'
+	priorityRx    = regexp.MustCompile(`^\(([A-Z])\)\s+`)                              // Match priority: '(A) ...'
+	createdDateRx = regexp.MustCompile(`^(\([A-Z]\)|)\s*([\d]{4}-[\d]{2}-[\d]{2})\s+`) // Match date: '(A) 2012-12-12 ...' or '2012-12-12 ...'
+	dueDateRx     = regexp.MustCompile(`\s+due:([\d]{4}-[\d]{2}-[\d]{2})`)             // Match due date: '... due:2012-12-12 ...'
+	contextRx     = regexp.MustCompile(`(^|\s+)@([[:word:]]+)`)                        // Match contexts: '@Context ...' or '... @Context ...'
+	projectRx     = regexp.MustCompile(`(^|\s+)\+([[:word:]]+)`)                       // Match projects: '+Project...' or '... +Project ...'
 )
 
 // String returns a complete task string in todo.txt format.
@@ -48,16 +53,33 @@ var (
 //  "(A) 2013-07-23 Call Dad @Phone +Family due:2013-07-31"
 func (task *Task) String() string {
 	var text string
+
 	if task.HasPriority() {
 		text += fmt.Sprintf("(%s) ", task.Priority)
 	}
+
 	if task.HasCreatedDate() {
 		text += fmt.Sprintf("%s ", task.CreatedDate.Format(DateLayout))
 	}
+
 	text += task.Todo
-	if task.HasDueDate() {
-		text += fmt.Sprintf(" %s", task.DueDate.Format(DateLayout))
+
+	if len(task.Contexts) > 0 {
+		for _, context := range task.Contexts {
+			text += fmt.Sprintf(" @%s", context)
+		}
 	}
+
+	if len(task.Projects) > 0 {
+		for _, project := range task.Projects {
+			text += fmt.Sprintf(" +%s", project)
+		}
+	}
+
+	if task.HasDueDate() {
+		text += fmt.Sprintf(" due:%s", task.DueDate.Format(DateLayout))
+	}
+
 	return text
 }
 
@@ -102,18 +124,57 @@ func (tasklist *TaskList) LoadFromFile(file *os.File) error {
 
 		// Check for priority
 		if priorityRx.MatchString(task.Original) {
-			task.Priority = priorityRx.FindStringSubmatch(task.Original)[1] // First match is priority value
+			task.Priority = priorityRx.FindStringSubmatch(task.Original)[1]
 		}
 
 		// Check for created date
 		if createdDateRx.MatchString(task.Original) {
-			// Second match is created date value
 			if date, err := time.Parse(DateLayout, createdDateRx.FindStringSubmatch(task.Original)[2]); err != nil {
 				return err
 			} else {
 				task.CreatedDate = date
 			}
 		}
+
+		// Check for due date
+		if dueDateRx.MatchString(task.Original) {
+			if date, err := time.Parse(DateLayout, dueDateRx.FindStringSubmatch(task.Original)[1]); err != nil {
+				return err
+			} else {
+				task.DueDate = date
+			}
+		}
+
+		// function for collecting projects/contexts as slices from text
+		getSlice := func(rx *regexp.Regexp) []string {
+			matches := rx.FindAllStringSubmatch(task.Original, -1)
+			slice := make([]string, 0, len(matches))
+			seen := make(map[string]bool, len(matches))
+			for _, match := range matches {
+				word := strings.Trim(match[2], "\t\n\r ")
+				if _, found := seen[word]; !found {
+					slice = append(slice, word)
+					seen[word] = true
+				}
+			}
+			sort.Strings(slice)
+			return slice
+		}
+
+		// Check for contexts
+		if contextRx.MatchString(task.Original) {
+			task.Contexts = getSlice(contextRx)
+		}
+
+		// Check for projects
+		if projectRx.MatchString(task.Original) {
+			task.Projects = getSlice(projectRx)
+		}
+
+		// Todo text
+		// use replacer function here.. strip all other fields from task.Original, then left+right trim --> todo text
+		text := strings.Replace(task.Original, " ", "", -1)
+		task.Todo = text
 
 		*tasklist = append(*tasklist, task)
 	}
