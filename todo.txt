@@ -1,0 +1,8 @@
+(A) 2012-01-30 Call Mom @Phone +Family
+(A) Schedule annual checkup +Health
+(B) Outline chapter 5 +Novel @Computer
+(C) Add cover sheets @Office +TPSReports
+Plan backyard herb garden @Home
+2013-02-22 Pick up milk @GroceryStore
+Research self-publishing services +Novel @Computer
+x Download Todo.txt mobile app @Phone
