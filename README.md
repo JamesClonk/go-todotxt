@@ -3,7 +3,7 @@ go-todotxt
 
 A Go todo.txt library.  
 
-[![GoDoc](https://godoc.org/github.com/JamesClonk/go-todotxt?status.png)](https://godoc.org/github.com/JamesClonk/go-todotxt) [![Build Status](https://travis-ci.org/JamesClonk/go-todotxt.png?branch=master)](https://travis-ci.org/JamesClonk/go-todotxt)
+[![GoDoc](https://godoc.org/github.com/JamesClonk/go-todotxt?status.png)](https://godoc.org/github.com/JamesClonk/go-todotxt) [![Build Status](https://travis-ci.org/JamesClonk/go-todotxt.png?branch=master)](https://travis-ci.org/JamesClonk/go-todotxt) [![Codebot](https://codebot.io/badge/github.com/JamesClonk/go-todotxt.png)](http://codebot.io/doc/pkg/github.com/JamesClonk/go-todotxt "Codebot") [![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/JamesClonk/go-todotxt/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
 
 The *todotxt* package is a Go client library for Gina Trapani's [todo.txt](https://github.com/ginatrapani/todo.txt-cli/) files.
 It allows for parsing and manipulating of task lists and tasks in the todo.txt format.
