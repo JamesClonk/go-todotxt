@@ -35,7 +35,7 @@ func (tasklist *TaskList) Sort(sortFlag int) error {
 	case SORT_DUE_DATE_ASC, SORT_DUE_DATE_DESC:
 		tasklist.sortByDueDate(sortFlag)
 	default:
-		return errors.New("Unrecognized sort option")
+		return errors.New("unrecognized sort option")
 	}
 	return nil
 }
@@ -68,19 +68,17 @@ func (tasklist *TaskList) sortBy(by func(t1, t2 *Task) bool) *TaskList {
 
 func (tasklist *TaskList) sortByPriority(order int) *TaskList {
 	tasklist.sortBy(func(t1, t2 *Task) bool {
-		if order == SORT_PRIORITY_DESC { // DESC
-			if t1.HasPriority() && t2.HasPriority() {
-				return t1.Priority > t2.Priority
-			} else {
-				return !t1.HasPriority()
-			}
-		} else { // ASC
+		if order == SORT_PRIORITY_ASC { // ASC
 			if t1.HasPriority() && t2.HasPriority() {
 				return t1.Priority < t2.Priority
-			} else {
-				return t1.HasPriority()
 			}
+			return t1.HasPriority()
 		}
+		// DESC
+		if t1.HasPriority() && t2.HasPriority() {
+			return t1.Priority > t2.Priority
+		}
+		return !t1.HasPriority()
 	})
 	return tasklist
 }
@@ -89,16 +87,14 @@ func sortByDate(asc bool, hasDate1, hasDate2 bool, date1, date2 time.Time) bool 
 	if asc { // ASC
 		if hasDate1 && hasDate2 {
 			return date1.Before(date2)
-		} else {
-			return hasDate2
 		}
-	} else { // DESC
-		if hasDate1 && hasDate2 {
-			return date1.After(date2)
-		} else {
-			return !hasDate2
-		}
+		return hasDate2
 	}
+	// DESC
+	if hasDate1 && hasDate2 {
+		return date1.After(date2)
+	}
+	return !hasDate2
 }
 
 func (tasklist *TaskList) sortByCreatedDate(order int) *TaskList {

@@ -23,12 +23,13 @@ import (
 // It is usually loaded from a whole todo.txt file.
 type TaskList []Task
 
-// IgnoreComments can be set to 'false', in order to revert to more standard todo.txt behaviour.
+// IgnoreComments can be set to 'false', in order to revert to a more standard todo.txt behaviour.
 // The todo.txt format does not define comments.
 var (
-	// Used for formatting time.Time into todo.txt date format and vice-versa.
+	// DateLayout is used for formatting time.Time into todo.txt date format and vice-versa.
 	DateLayout = "2006-01-02"
-	// Ignores comments (Lines/Text starting with "#").
+	// IgnoreComments is used to switch ignoring of comments (lines starting with "#").
+	// If this is set to 'false', then lines starting with "#" will be parsed as tasks.
 	IgnoreComments = true
 
 	// unexported vars
@@ -74,10 +75,10 @@ func (tasklist *TaskList) LoadFromFile(file *os.File) error {
 			task.Completed = true
 			// Check for completed date
 			if completedDateRx.MatchString(task.Original) {
-				if date, err := time.Parse(DateLayout, completedDateRx.FindStringSubmatch(task.Original)[1]); err != nil {
-					return err
-				} else {
+				if date, err := time.Parse(DateLayout, completedDateRx.FindStringSubmatch(task.Original)[1]); err == nil {
 					task.CompletedDate = date
+				} else {
+					return err
 				}
 			}
 
@@ -94,11 +95,11 @@ func (tasklist *TaskList) LoadFromFile(file *os.File) error {
 
 		// Check for created date
 		if createdDateRx.MatchString(task.Original) {
-			if date, err := time.Parse(DateLayout, createdDateRx.FindStringSubmatch(task.Original)[2]); err != nil {
-				return err
-			} else {
+			if date, err := time.Parse(DateLayout, createdDateRx.FindStringSubmatch(task.Original)[2]); err == nil {
 				task.CreatedDate = date
 				task.Todo = createdDateRx.ReplaceAllString(task.Todo, "") // Remove from Todo text
+			} else {
+				return err
 			}
 		}
 
@@ -137,10 +138,10 @@ func (tasklist *TaskList) LoadFromFile(file *os.File) error {
 			for _, match := range matches {
 				key, value := match[2], match[3]
 				if key == "due" { // due date is a known addon tag, it has its own struct field
-					if date, err := time.Parse(DateLayout, value); err != nil {
-						return err
-					} else {
+					if date, err := time.Parse(DateLayout, value); err == nil {
 						task.DueDate = date
+					} else {
+						return err
 					}
 				} else if key != "" && value != "" {
 					tags[key] = value
@@ -195,8 +196,10 @@ func (tasklist *TaskList) WriteToFilename(filename string) error {
 // Using *os.File instead of a filename allows to also use os.Stdin.
 func LoadFromFile(file *os.File) (TaskList, error) {
 	tasklist := TaskList{}
-	err := tasklist.LoadFromFile(file)
-	return tasklist, err
+	if err := tasklist.LoadFromFile(file); err != nil {
+		return nil, err
+	}
+	return tasklist, nil
 }
 
 // WriteToFile writes a TaskList to *os.File.
@@ -209,8 +212,10 @@ func WriteToFile(tasklist *TaskList, file *os.File) error {
 // LoadFromFilename loads and returns a TaskList from a file (most likely called "todo.txt").
 func LoadFromFilename(filename string) (TaskList, error) {
 	tasklist := TaskList{}
-	err := tasklist.LoadFromFilename(filename)
-	return tasklist, err
+	if err := tasklist.LoadFromFilename(filename); err != nil {
+		return nil, err
+	}
+	return tasklist, nil
 }
 
 // WriteToFilename writes a TaskList to the specified file (most likely called "todo.txt").

@@ -59,3 +59,20 @@ x 2014-01-03 2014-01-01 Create some more golang library test cases @Go +go-todot
 x 2014-01-04 (B) 2013-12-30 Create golang library @Go +go-todotxt due:2014-01-02
 (B) 2013-12-01 private:false Outline chapter 5 +Novel @Computer due:2017-07-17 Level:5 
 Research self-publishing services +Novel +Novel +Novel due:2014-01-01
+x 2014-01-03 2014-01-01 Create some more golang library test cases @Go +go-todotxt
+
+# Complete test cases
+Create golang library @Go +go-todotxt due:2014-01-05
+(A) @Phone Call Mom @Call +Family
+2014-01-03 Create golang library @Go +go-todotxt due:2014-01-05
+(B) 2013-12-30 Create golang library test cases @Go +go-todotxt
+x 2012-01-01 More Go!
+
+# Reopen test cases
+x Download Todo.txt mobile app @Phone
+x (C) 2014-01-01 Create golang library documentation @Go +go-todotxt due:2014-01-12
+x 2014-01-03 Create golang library @Go +go-todotxt due:2014-01-05
+x 2014-01-02 (B) 2013-12-30 Create golang library test cases @Go +go-todotxt
+x 2014-01-03 2014-01-01 Create some more golang library test cases @Go +go-todotxt
+(B) 2013-12-30 Create golang library test cases @Go +go-todotxt
+

@@ -11,12 +11,16 @@ import (
 )
 
 var (
-	testInputTasklist  = "testdata/tasklist_todo.txt"
-	testOutput         = "testdata/ouput_todo.txt"
-	testExpectedOutput = "testdata/expected_todo.txt"
-	testTasklist       TaskList
-	testExpected       interface{}
-	testGot            interface{}
+	testInputTasklist                   = "testdata/tasklist_todo.txt"
+	testInputTasklistCreatedDateError   = "testdata/tasklist_createdDate_error.txt"
+	testInputTasklistDueDateError       = "testdata/tasklist_dueDate_error.txt"
+	testInputTasklistCompletedDateError = "testdata/tasklist_completedDate_error.txt"
+	testInputTasklistScannerError       = "testdata/tasklist_scanner_error.txt"
+	testOutput                          = "testdata/ouput_todo.txt"
+	testExpectedOutput                  = "testdata/expected_todo.txt"
+	testTasklist                        TaskList
+	testExpected                        interface{}
+	testGot                             interface{}
 )
 
 func TestLoadFromFile(t *testing.T) {
@@ -39,6 +43,10 @@ func TestLoadFromFile(t *testing.T) {
 			t.Errorf("Expected TaskList to be [%s], but got [%s]", testExpected, testGot)
 		}
 	}
+
+	if testTasklist, err := LoadFromFile(nil); testTasklist != nil || err == nil {
+		t.Errorf("Expected LoadFromFile to fail, but got TaskList back: [%s]", testTasklist)
+	}
 }
 
 func TestLoadFromFilename(t *testing.T) {
@@ -54,6 +62,10 @@ func TestLoadFromFilename(t *testing.T) {
 		if testGot != testExpected {
 			t.Errorf("Expected TaskList to be [%s], but got [%s]", testExpected, testGot)
 		}
+	}
+
+	if testTasklist, err := LoadFromFilename("some_file_that_does_not_exists.txt"); testTasklist != nil || err == nil {
+		t.Errorf("Expected LoadFromFilename to fail, but got TaskList back: [%s]", testTasklist)
 	}
 }
 
@@ -192,11 +204,40 @@ func TestTaskListWriteFilename(t *testing.T) {
 }
 
 func TestTaskListCount(t *testing.T) {
-	testTasklist.LoadFromFilename(testInputTasklist)
+	if err := testTasklist.LoadFromFilename(testInputTasklist); err != nil {
+		t.Fatal(err)
+	}
 
 	testExpected := 63
 	testGot := len(testTasklist)
 	if testGot != testExpected {
 		t.Errorf("Expected TaskList to contain %d tasks, but got %d", testExpected, testGot)
+	}
+}
+
+func TestTaskListReadErrors(t *testing.T) {
+	if testTasklist, err := LoadFromFilename(testInputTasklistCreatedDateError); testTasklist != nil || err == nil {
+		t.Errorf("Expected LoadFromFilename to fail because of invalid created date, but got TaskList back: [%s]", testTasklist)
+	} else if err.Error() != `parsing time "2013-13-01": month out of range` {
+		t.Error(err)
+	}
+
+	if testTasklist, err := LoadFromFilename(testInputTasklistDueDateError); testTasklist != nil || err == nil {
+		t.Errorf("Expected LoadFromFilename to fail because of invalid due date, but got TaskList back: [%s]", testTasklist)
+	} else if err.Error() != `parsing time "2014-02-32": day out of range` {
+		t.Error(err)
+	}
+
+	if testTasklist, err := LoadFromFilename(testInputTasklistCompletedDateError); testTasklist != nil || err == nil {
+		t.Errorf("Expected LoadFromFilename to fail because of invalid completed date, but got TaskList back: [%s]", testTasklist)
+	} else if err.Error() != `parsing time "2014-25-04": month out of range` {
+		t.Error(err)
+	}
+
+	// really silly test
+	if testTasklist, err := LoadFromFilename(testInputTasklistScannerError); testTasklist != nil || err == nil {
+		t.Errorf("Expected LoadFromFilename to fail because of invalid file, but got TaskList back: [%s]", testTasklist)
+	} else if err.Error() != `bufio.Scanner: token too long` {
+		t.Error(err)
 	}
 }

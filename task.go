@@ -67,7 +67,7 @@ func (task Task) String() string {
 	if len(task.AdditionalTags) > 0 {
 		// Sort map alphabetically by keys
 		keys := make([]string, 0, len(task.AdditionalTags))
-		for key, _ := range task.AdditionalTags {
+		for key := range task.AdditionalTags {
 			keys = append(keys, key)
 		}
 		sort.Strings(keys)
@@ -106,7 +106,25 @@ func (task *Task) HasDueDate() bool {
 
 // HasCompletedDate returns true if the task has a completed date.
 func (task *Task) HasCompletedDate() bool {
-	return !task.CompletedDate.IsZero()
+	return !task.CompletedDate.IsZero() && task.Completed
+}
+
+// Complete sets Task.Completed to 'true' if the task was not already completed.
+// Also sets Task.CompletedDate to time.Now()
+func (task *Task) Complete() {
+	if !task.Completed {
+		task.Completed = true
+		task.CompletedDate = time.Now()
+	}
+}
+
+// Reopen sets Task.Completed to 'false' if the task was completed.
+// Also resets Task.CompletedDate.
+func (task *Task) Reopen() {
+	if task.Completed {
+		task.Completed = false
+		task.CompletedDate = time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC) // time.IsZero() value
+	}
 }
 
 // IsOverdue returns true if due date is in the past.
@@ -116,9 +134,8 @@ func (task *Task) HasCompletedDate() bool {
 func (task *Task) IsOverdue() bool {
 	if task.HasDueDate() {
 		return task.DueDate.Before(time.Now())
-	} else {
-		return false
 	}
+	return false
 }
 
 // Due returns the duration passed since due date, or until due date from now.
@@ -129,7 +146,6 @@ func (task *Task) IsOverdue() bool {
 func (task *Task) Due() time.Duration {
 	if task.IsOverdue() {
 		return time.Now().Sub(task.DueDate)
-	} else {
-		return task.DueDate.Sub(time.Now())
 	}
+	return task.DueDate.Sub(time.Now())
 }
