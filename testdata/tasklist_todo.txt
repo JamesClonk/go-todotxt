@@ -1,63 +1,63 @@
-# String test cases
 2013-02-22 Pick up milk @GroceryStore
 x Download Todo.txt mobile app @Phone    
 (B) 2013-12-01 private:false Outline chapter 5 +Novel @Computer Level:5 due:2014-02-17
 x 2014-01-02 (B) 2013-12-30 Create golang library test cases @Go +go-todotxt
 x 2014-01-03 2014-01-01 Create some more golang library test cases @Go +go-todotxt
-
-# Priority test cases
 (B) 2013-12-01 private:false Outline chapter 5 +Novel @Computer Level:5 due:2014-02-17
 x (C) 2014-01-01 Create golang library documentation @Go +go-todotxt due:2014-01-12
 x 2014-01-02 (B) 2013-12-30 Create golang library test cases @Go +go-todotxt
 +Gardening Plan backyard herb garden +Planning @Home +Improving			   
-
-# CreatedDate test cases
 (A) 2012-01-30 @Phone Call Mom @Call +Family
 2013-02-22 Pick up milk @GroceryStore
+x (C) 2014-01-01 Create golang library documentation @Go +go-todotxt due:2014-01-12
 x 2014-01-02 (B) 2013-12-30 Create golang library test cases @Go +go-todotxt 
 x 2014-01-03 2014-01-01 Create some more golang library test cases @Go +go-todotxt  
 (C) Add cover sheets @Office +TPSReports		
-
-# Contexts test cases
 (A) 2012-01-30 @Phone Call Mom @Call +Family
 (C) Add cover sheets @Office +TPSReports
 @Home Turn off TV @Electricity @Television @Electricity @Of_Super-Importance Importance:Very!
 Research self-publishing services +Novel +Novel +Novel due:2014-01-01
-
-# Projects test cases
 +Gardening Plan backyard herb garden +Planning @Home +Improving +Relaxing-Work
 Research self-publishing services +Novel +Novel +Novel due:2014-01-01
 @Home Turn off TV @Electricity @Television @Electricity Importance:Very!
-
-# DueDate test cases
 (B) 2013-12-01 private:false Outline chapter 5 +Novel @Computer due:2014-02-17 Level:5 
 x 2014-01-02 (B) 2013-12-30 Create golang library test cases @Go +go-todotxt
-
-# AdditionalTags test cases
 (B) 2013-12-01 private:false Outline chapter 5 +Novel @Computer Level:5 due:2014-02-17
 @Home Turn off TV @Electricity @Television @Electricity Importance:Very!
 x (C) 2014-01-01 Create golang library documentation @Go +go-todotxt due:2014-01-12
 (A) 2012-01-30 @Phone Call Mom @Call +Family
-
-# Completed test cases
 x Create golang library @Go +go-todotxt due:2014-01-05
 x 2014-01-03 Create golang library @Go +go-todotxt due:2014-01-05
 x 2014-01-02 (B) 2013-12-30 Create golang library test cases @Go +go-todotxt
 xylophone lesson
 X 2012-01-01 Make resolutions
-
-# CompletedDate test cases
 x Download Todo.txt mobile app @Phone
 x 2014-01-03 Create golang library @Go +go-todotxt due:2014-01-05
 x (C) 2014-01-01 Create golang library documentation @Go +go-todotxt due:2014-01-12
 x 2014-01-02 (B) 2013-12-30 Create golang library test cases @Go +go-todotxt
 x 2014-01-03 2014-01-01 Create some more golang library test cases @Go +go-todotxt
 2013-02-22 Pick up milk @GroceryStore
-
-# Sort Priority test case
+x 2014-01-04 (B) 2013-12-30 Create golang library @Go +go-todotxt due:2014-01-02
+(B) 2013-12-01 private:false Outline chapter 5 +Novel @Computer due:2014-02-17 Level:5 
+Research self-publishing services +Novel +Novel +Novel due:2014-01-01
 2013-02-22 Pick up milk @GroceryStore
 x 2014-01-02 (B) 2013-12-30 Create golang library test cases @Go +go-todotxt
 x (C) 2014-01-01 Create golang library documentation @Go +go-todotxt due:2014-01-12
 (D) 2013-12-01 private:false Outline chapter 5 +Novel @Computer Level:5 due:2014-02-17
 x 2014-01-03 Create golang library @Go +go-todotxt due:2014-01-05
 (A) 2012-01-30 @Phone Call Mom @Call +Family
+x 2014-01-02 (B) 2013-12-30 Create golang library test cases @Go +go-todotxt
+x 2014-01-03 Create golang library @Go +go-todotxt due:2014-01-05
+2013-02-22 Pick up milk @GroceryStore
+(A) @Phone Call Mom @Call +Family
+x (C) 2014-01-01 Create golang library documentation @Go +go-todotxt due:2014-01-12
+x Download Todo.txt mobile app @Phone
+x 2014-01-03 Create golang library @Go +go-todotxt due:2014-01-05
+x (C) 2014-01-01 Create golang library documentation @Go +go-todotxt due:2014-01-12
+x 2014-01-02 (B) 2013-12-30 Create golang library test cases @Go +go-todotxt
+x 2014-01-04 2014-01-01 Create some more golang library test cases @Go +go-todotxt
+2013-02-22 Pick up milk @GroceryStore
+(B) 2013-12-01 private:false Outline chapter 5 +Novel @Computer due:2014-02-17 Level:5 
+x 2014-01-02 (B) 2013-12-30 Create golang library test cases @Go +go-todotxt
+x 2014-01-03 due:2014-01-05 Create golang library @Go +go-todotxt 
+x (C) 2014-01-01 Create golang library documentation @Go due:2014-01-12 +go-todotxt 

@@ -108,3 +108,28 @@ func (task *Task) HasDueDate() bool {
 func (task *Task) HasCompletedDate() bool {
 	return !task.CompletedDate.IsZero()
 }
+
+// IsOverdue returns true if due date is in the past.
+//
+// This function does not take the Completed flag into consideration.
+// You should check Task.Completed first if needed.
+func (task *Task) IsOverdue() bool {
+	if task.HasDueDate() {
+		return task.DueDate.Before(time.Now())
+	} else {
+		return false
+	}
+}
+
+// Due returns the duration passed since due date, or until due date from now.
+// Check with IsOverdue() if the task is overdue or not.
+//
+// Just as with IsOverdue(), this function does also not take the Completed flag into consideration.
+// You should check Task.Completed first if needed.
+func (task *Task) Due() time.Duration {
+	if task.IsOverdue() {
+		return time.Now().Sub(task.DueDate)
+	} else {
+		return task.DueDate.Sub(time.Now())
+	}
+}

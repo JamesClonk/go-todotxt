@@ -7,6 +7,7 @@ package todotxt
 import (
 	"errors"
 	"sort"
+	"time"
 )
 
 // Flags for defining sort element and order.
@@ -36,7 +37,6 @@ func (tasklist *TaskList) Sort(sortFlag int) error {
 	default:
 		return errors.New("Unrecognized sort option")
 	}
-
 	return nil
 }
 
@@ -85,59 +85,39 @@ func (tasklist *TaskList) sortByPriority(order int) *TaskList {
 	return tasklist
 }
 
+func sortByDate(asc bool, hasDate1, hasDate2 bool, date1, date2 time.Time) bool {
+	if asc { // ASC
+		if hasDate1 && hasDate2 {
+			return date1.Before(date2)
+		} else {
+			return hasDate2
+		}
+	} else { // DESC
+		if hasDate1 && hasDate2 {
+			return date1.After(date2)
+		} else {
+			return !hasDate2
+		}
+	}
+}
+
 func (tasklist *TaskList) sortByCreatedDate(order int) *TaskList {
 	tasklist.sortBy(func(t1, t2 *Task) bool {
-		if order == SORT_CREATED_DATE_DESC { // DESC
-			if t1.HasCreatedDate() && t2.HasCreatedDate() {
-				return t1.CreatedDate.After(t2.CreatedDate)
-			} else {
-				return !t1.HasCreatedDate()
-			}
-		} else { // ASC
-			if t1.HasCreatedDate() && t2.HasCreatedDate() {
-				return t1.CreatedDate.Before(t2.CreatedDate)
-			} else {
-				return t1.HasCreatedDate()
-			}
-		}
+		return sortByDate(order == SORT_CREATED_DATE_ASC, t1.HasCreatedDate(), t2.HasCreatedDate(), t1.CreatedDate, t2.CreatedDate)
 	})
 	return tasklist
 }
 
 func (tasklist *TaskList) sortByCompletedDate(order int) *TaskList {
 	tasklist.sortBy(func(t1, t2 *Task) bool {
-		if order == SORT_COMPLETED_DATE_DESC { // DESC
-			if t1.HasCompletedDate() && t2.HasCompletedDate() {
-				return t1.CompletedDate.After(t2.CompletedDate)
-			} else {
-				return !t1.HasCompletedDate()
-			}
-		} else { // ASC
-			if t1.HasCompletedDate() && t2.HasCompletedDate() {
-				return t1.CompletedDate.Before(t2.CompletedDate)
-			} else {
-				return t1.HasCompletedDate()
-			}
-		}
+		return sortByDate(order == SORT_COMPLETED_DATE_ASC, t1.HasCompletedDate(), t2.HasCompletedDate(), t1.CompletedDate, t2.CompletedDate)
 	})
 	return tasklist
 }
 
 func (tasklist *TaskList) sortByDueDate(order int) *TaskList {
 	tasklist.sortBy(func(t1, t2 *Task) bool {
-		if order == SORT_DUE_DATE_DESC { // DESC
-			if t1.HasDueDate() && t2.HasDueDate() {
-				return t1.DueDate.After(t2.DueDate)
-			} else {
-				return !t1.HasDueDate()
-			}
-		} else { // ASC
-			if t1.HasDueDate() && t2.HasDueDate() {
-				return t1.DueDate.Before(t2.DueDate)
-			} else {
-				return t1.HasDueDate()
-			}
-		}
+		return sortByDate(order == SORT_DUE_DATE_ASC, t1.HasDueDate(), t2.HasDueDate(), t1.DueDate, t2.DueDate)
 	})
 	return tasklist
 }
