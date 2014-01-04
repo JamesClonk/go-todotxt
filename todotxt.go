@@ -188,7 +188,7 @@ func (tasklist *TaskList) LoadFromFilename(filename string) error {
 
 // WriteToFilename writes a TaskList to the specified file (most likely called "todo.txt").
 func (tasklist *TaskList) WriteToFilename(filename string) error {
-	return ioutil.WriteFile(filename, []byte(tasklist.String()), 0644)
+	return ioutil.WriteFile(filename, []byte(tasklist.String()), 0640)
 }
 
 // LoadFromFile loads and returns a TaskList from *os.File.

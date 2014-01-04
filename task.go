@@ -53,12 +53,14 @@ func (task Task) String() string {
 	text += task.Todo
 
 	if len(task.Contexts) > 0 {
+		sort.Strings(task.Contexts)
 		for _, context := range task.Contexts {
 			text += fmt.Sprintf(" @%s", context)
 		}
 	}
 
 	if len(task.Projects) > 0 {
+		sort.Strings(task.Projects)
 		for _, project := range task.Projects {
 			text += fmt.Sprintf(" +%s", project)
 		}
