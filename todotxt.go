@@ -13,10 +13,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"regexp"
-	"sort"
 	"strings"
-	"time"
 )
 
 // TaskList represents a list of todo.txt task entries.
@@ -26,21 +23,9 @@ type TaskList []Task
 // IgnoreComments can be set to 'false', in order to revert to a more standard todo.txt behaviour.
 // The todo.txt format does not define comments.
 var (
-	// DateLayout is used for formatting time.Time into todo.txt date format and vice-versa.
-	DateLayout = "2006-01-02"
 	// IgnoreComments is used to switch ignoring of comments (lines starting with "#").
 	// If this is set to 'false', then lines starting with "#" will be parsed as tasks.
 	IgnoreComments = true
-
-	// unexported vars
-	priorityRx = regexp.MustCompile(`^(x|x \d{4}-\d{2}-\d{2}|)\s*\(([A-Z])\)\s+`) // Match priority: '(A) ...' or 'x (A) ...' or 'x 2012-12-12 (A) ...'
-	// Match created date: '(A) 2012-12-12 ...' or 'x 2012-12-12 (A) 2012-12-12 ...' or 'x (A) 2012-12-12 ...'or 'x 2012-12-12 2012-12-12 ...' or '2012-12-12 ...'
-	createdDateRx   = regexp.MustCompile(`^(\([A-Z]\)|x \d{4}-\d{2}-\d{2} \([A-Z]\)|x \([A-Z]\)|x \d{4}-\d{2}-\d{2}|)\s*(\d{4}-\d{2}-\d{2})\s+`)
-	completedRx     = regexp.MustCompile(`^x\s+`)                       // Match completed: 'x ...'
-	completedDateRx = regexp.MustCompile(`^x\s*(\d{4}-\d{2}-\d{2})\s+`) // Match completed date: 'x 2012-12-12 ...'
-	addonTagRx      = regexp.MustCompile(`(^|\s+)([\w-]+):(\S+)`)       // Match additional tags date: '... due:2012-12-12 ...'
-	contextRx       = regexp.MustCompile(`(^|\s+)@(\S+)`)               // Match contexts: '@Context ...' or '... @Context ...'
-	projectRx       = regexp.MustCompile(`(^|\s+)\+(\S+)`)              // Match projects: '+Project...' or '... +Project ...'
 )
 
 // String returns a complete tasklist string in todo.txt format.
@@ -51,6 +36,20 @@ func (tasklist TaskList) String() (text string) {
 	return text
 }
 
+// AddTask appends a task to the current TaskList, and takes care to set the Task.Id correctly, modifying the Task by the given pointer!
+func (tasklist *TaskList) AddTask(task *Task) (err error) {
+	task.Id = 0
+	for _, t := range *tasklist {
+		if t.Id > task.Id {
+			task.Id = t.Id
+		}
+	}
+	task.Id += 1
+
+	*tasklist = append(*tasklist, *task)
+	return
+}
+
 // LoadFromFile loads a TaskList from *os.File.
 //
 // Using *os.File instead of a filename allows to also use os.Stdin.
@@ -59,102 +58,24 @@ func (tasklist TaskList) String() (text string) {
 func (tasklist *TaskList) LoadFromFile(file *os.File) error {
 	*tasklist = []Task{} // Empty tasklist
 
+	taskId := 1
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		task := Task{}
-		task.Original = strings.Trim(scanner.Text(), "\t\n\r ") // Read line
-		task.Todo = task.Original
+		text := strings.Trim(scanner.Text(), "\t\n\r ") // Read line
 
 		// Ignore blank or comment lines
-		if task.Todo == "" || (IgnoreComments && strings.HasPrefix(task.Todo, "#")) {
+		if text == "" || (IgnoreComments && strings.HasPrefix(text, "#")) {
 			continue
 		}
 
-		// Check for completed
-		if completedRx.MatchString(task.Original) {
-			task.Completed = true
-			// Check for completed date
-			if completedDateRx.MatchString(task.Original) {
-				if date, err := time.Parse(DateLayout, completedDateRx.FindStringSubmatch(task.Original)[1]); err == nil {
-					task.CompletedDate = date
-				} else {
-					return err
-				}
-			}
-
-			// Remove from Todo text
-			task.Todo = completedDateRx.ReplaceAllString(task.Todo, "") // Strip CompletedDate first, otherwise it wouldn't match anymore (^x date...)
-			task.Todo = completedRx.ReplaceAllString(task.Todo, "")     // Strip 'x '
+		task, err := ParseTask(text)
+		if err != nil {
+			return err
 		}
+		task.Id = taskId
 
-		// Check for priority
-		if priorityRx.MatchString(task.Original) {
-			task.Priority = priorityRx.FindStringSubmatch(task.Original)[2]
-			task.Todo = priorityRx.ReplaceAllString(task.Todo, "") // Remove from Todo text
-		}
-
-		// Check for created date
-		if createdDateRx.MatchString(task.Original) {
-			if date, err := time.Parse(DateLayout, createdDateRx.FindStringSubmatch(task.Original)[2]); err == nil {
-				task.CreatedDate = date
-				task.Todo = createdDateRx.ReplaceAllString(task.Todo, "") // Remove from Todo text
-			} else {
-				return err
-			}
-		}
-
-		// function for collecting projects/contexts as slices from text
-		getSlice := func(rx *regexp.Regexp) []string {
-			matches := rx.FindAllStringSubmatch(task.Original, -1)
-			slice := make([]string, 0, len(matches))
-			seen := make(map[string]bool, len(matches))
-			for _, match := range matches {
-				word := strings.Trim(match[2], "\t\n\r ")
-				if _, found := seen[word]; !found {
-					slice = append(slice, word)
-					seen[word] = true
-				}
-			}
-			sort.Strings(slice)
-			return slice
-		}
-
-		// Check for contexts
-		if contextRx.MatchString(task.Original) {
-			task.Contexts = getSlice(contextRx)
-			task.Todo = contextRx.ReplaceAllString(task.Todo, "") // Remove from Todo text
-		}
-
-		// Check for projects
-		if projectRx.MatchString(task.Original) {
-			task.Projects = getSlice(projectRx)
-			task.Todo = projectRx.ReplaceAllString(task.Todo, "") // Remove from Todo text
-		}
-
-		// Check for additional tags
-		if addonTagRx.MatchString(task.Original) {
-			matches := addonTagRx.FindAllStringSubmatch(task.Original, -1)
-			tags := make(map[string]string, len(matches))
-			for _, match := range matches {
-				key, value := match[2], match[3]
-				if key == "due" { // due date is a known addon tag, it has its own struct field
-					if date, err := time.Parse(DateLayout, value); err == nil {
-						task.DueDate = date
-					} else {
-						return err
-					}
-				} else if key != "" && value != "" {
-					tags[key] = value
-				}
-			}
-			task.AdditionalTags = tags
-			task.Todo = addonTagRx.ReplaceAllString(task.Todo, "") // Remove from Todo text
-		}
-
-		// Trim any remaining whitespaces from Todo text
-		task.Todo = strings.Trim(task.Todo, "\t\n\r\f ")
-
-		*tasklist = append(*tasklist, task)
+		*tasklist = append(*tasklist, *task)
+		taskId++
 	}
 	if err := scanner.Err(); err != nil {
 		return err

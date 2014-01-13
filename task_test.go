@@ -13,6 +13,184 @@ var (
 	testInputTask = "testdata/task_todo.txt"
 )
 
+func TestNewTask(t *testing.T) {
+	task := NewTask()
+
+	testExpected = 0
+	testGot = task.Id
+	if testGot != testExpected {
+		t.Errorf("Expected new Task to have default Id [%d], but got [%d]", testExpected, testGot)
+	}
+
+	testExpected = ""
+	testGot = task.Original
+	if testGot != testExpected {
+		t.Errorf("Expected new Task to be empty, but got [%s]", testGot)
+	}
+
+	testExpected = ""
+	testGot = task.Todo
+	if testGot != testExpected {
+		t.Errorf("Expected new Task to be empty, but got [%s]", testGot)
+	}
+
+	testExpected = false
+	testGot = task.HasPriority()
+	if testGot != testExpected {
+		t.Errorf("Expected new Task to have no priority, but got [%v]", testGot)
+	}
+
+	testExpected = 0
+	testGot = len(task.Projects)
+	if testGot != testExpected {
+		t.Errorf("Expected new Task to have %d projects, but got [%d]", testExpected, testGot)
+	}
+
+	testExpected = 0
+	testGot = len(task.Contexts)
+	if testGot != testExpected {
+		t.Errorf("Expected new Task to have %d contexts, but got [%d]", testExpected, testGot)
+	}
+
+	testExpected = 0
+	testGot = len(task.AdditionalTags)
+	if testGot != testExpected {
+		t.Errorf("Expected new Task to have %d additional tags, but got [%d]", testExpected, testGot)
+	}
+
+	testExpected = true
+	testGot = task.HasCreatedDate()
+	if testGot != testExpected {
+		t.Errorf("Expected new Task to have a created date, but got [%v]", testGot)
+	}
+
+	testExpected = false
+	testGot = task.HasCompletedDate()
+	if testGot != testExpected {
+		t.Errorf("Expected new Task to not have a completed date, but got [%v]", testGot)
+	}
+
+	testExpected = false
+	testGot = task.HasDueDate()
+	if testGot != testExpected {
+		t.Errorf("Expected new Task to not have a due date, but got [%v]", testGot)
+	}
+
+	testExpected = false
+	testGot = task.Completed
+	if testGot != testExpected {
+		t.Errorf("Expected new Task to not be completed, but got [%v]", testGot)
+	}
+}
+
+func TestParseTask(t *testing.T) {
+	task, err := ParseTask("x (C) 2014-01-01 @Go due:2014-01-12 Create golang library documentation +go-todotxt   ")
+	if err != nil {
+		t.Error(err)
+	}
+
+	testExpected = "x (C) 2014-01-01 Create golang library documentation @Go +go-todotxt due:2014-01-12"
+	testGot = task.Task()
+	if testGot != testExpected {
+		t.Errorf("Expected Task to be [%s], but got [%s]", testExpected, testGot)
+	}
+
+	testExpected = 0
+	testGot = task.Id
+	if testGot != testExpected {
+		t.Errorf("Expected Task to have default Id [%d], but got [%d]", testExpected, testGot)
+	}
+
+	testExpected = "x (C) 2014-01-01 @Go due:2014-01-12 Create golang library documentation +go-todotxt"
+	testGot = task.Original
+	if testGot != testExpected {
+		t.Errorf("Expected Task to be [%s], but got [%s]", testExpected, testGot)
+	}
+
+	testExpected = "Create golang library documentation"
+	testGot = task.Todo
+	if testGot != testExpected {
+		t.Errorf("Expected Task to be [%s], but got [%s]", testExpected, testGot)
+	}
+
+	testExpected = true
+	testGot = task.HasPriority()
+	if testGot != testExpected {
+		t.Errorf("Expected Task to have no priority, but got [%v]", testGot)
+	}
+
+	testExpected = "C"
+	testGot = task.Priority
+	if testGot != testExpected {
+		t.Errorf("Expected Task to have priority [%v], but got [%v]", testExpected, testGot)
+	}
+
+	testExpected = 1
+	testGot = len(task.Projects)
+	if testGot != testExpected {
+		t.Errorf("Expected Task to have %d projects, but got [%d]", testExpected, testGot)
+	}
+
+	testExpected = 1
+	testGot = len(task.Contexts)
+	if testGot != testExpected {
+		t.Errorf("Expected Task to have %d contexts, but got [%d]", testExpected, testGot)
+	}
+
+	testExpected = 0
+	testGot = len(task.AdditionalTags)
+	if testGot != testExpected {
+		t.Errorf("Expected Task to have %d additional tags, but got [%d]", testExpected, testGot)
+	}
+
+	testExpected = true
+	testGot = task.HasCreatedDate()
+	if testGot != testExpected {
+		t.Errorf("Expected Task to have a created date, but got [%v]", testGot)
+	}
+
+	testExpected = false
+	testGot = task.HasCompletedDate()
+	if testGot != testExpected {
+		t.Errorf("Expected Task to not have a completed date, but got [%v]", testGot)
+	}
+
+	testExpected = true
+	testGot = task.HasDueDate()
+	if testGot != testExpected {
+		t.Errorf("Expected Task to have a due date, but got [%v]", testGot)
+	}
+
+	testExpected = true
+	testGot = task.Completed
+	if testGot != testExpected {
+		t.Errorf("Expected Task to be completed, but got [%v]", testGot)
+	}
+}
+
+func TestTaskId(t *testing.T) {
+	testTasklist.LoadFromFilename(testInputTask)
+
+	taskId := 1
+	testGot = testTasklist[taskId-1].Id
+	if testGot != taskId {
+		t.Errorf("Expected Task[%d] to have Id [%d], but got [%d]", taskId, taskId, testGot)
+	}
+
+	taskId = 5
+	testGot = testTasklist[taskId-1].Id
+	if testGot != taskId {
+		t.Errorf("Expected Task[%d] to have Id [%d], but got [%d]", taskId, taskId, testGot)
+	}
+
+	taskId = 27
+	testGot = testTasklist[taskId-1].Id
+	if testGot != taskId {
+		t.Errorf("Expected Task[%d] to have Id [%d], but got [%d]", taskId, taskId, testGot)
+	}
+	taskId++
+}
+
 func TestTaskString(t *testing.T) {
 	testTasklist.LoadFromFilename(testInputTask)
 	taskId := 1

@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
+	"time"
 )
 
 var (
@@ -37,8 +38,8 @@ func TestLoadFromFile(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		testExpected := string(data)
-		testGot := testTasklist.String()
+		testExpected = string(data)
+		testGot = testTasklist.String()
 		if testGot != testExpected {
 			t.Errorf("Expected TaskList to be [%s], but got [%s]", testExpected, testGot)
 		}
@@ -57,8 +58,8 @@ func TestLoadFromFilename(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		testExpected := string(data)
-		testGot := testTasklist.String()
+		testExpected = string(data)
+		testGot = testTasklist.String()
 		if testGot != testExpected {
 			t.Errorf("Expected TaskList to be [%s], but got [%s]", testExpected, testGot)
 		}
@@ -104,8 +105,8 @@ func TestWriteFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	testExpected := string(data)
-	testGot := testTasklist.String()
+	testExpected = string(data)
+	testGot = testTasklist.String()
 	if testGot != testExpected {
 		t.Errorf("Expected TaskList to be [%s], but got [%s]", testExpected, testGot)
 	}
@@ -146,8 +147,8 @@ func TestTaskListWriteFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	testExpected := string(data)
-	testGot := testTasklist.String()
+	testExpected = string(data)
+	testGot = testTasklist.String()
 	if testGot != testExpected {
 		t.Errorf("Expected TaskList to be [%s], but got [%s]", testExpected, testGot)
 	}
@@ -171,8 +172,8 @@ func TestWriteFilename(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	testExpected := string(data)
-	testGot := testTasklist.String()
+	testExpected = string(data)
+	testGot = testTasklist.String()
 	if testGot != testExpected {
 		t.Errorf("Expected TaskList to be [%s], but got [%s]", testExpected, testGot)
 	}
@@ -196,11 +197,15 @@ func TestTaskListWriteFilename(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	testExpected := string(data)
-	testGot := testTasklist.String()
+	testExpected = string(data)
+	testGot = testTasklist.String()
 	if testGot != testExpected {
 		t.Errorf("Expected TaskList to be [%s], but got [%s]", testExpected, testGot)
 	}
+}
+
+func TestNewTaskList(t *testing.T) {
+	t.Fail()
 }
 
 func TestTaskListCount(t *testing.T) {
@@ -208,11 +213,107 @@ func TestTaskListCount(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	testExpected := 63
-	testGot := len(testTasklist)
+	testExpected = 63
+	testGot = len(testTasklist)
 	if testGot != testExpected {
 		t.Errorf("Expected TaskList to contain %d tasks, but got %d", testExpected, testGot)
 	}
+}
+
+func TestTaskListAddTask(t *testing.T) {
+	if err := testTasklist.LoadFromFilename(testInputTasklist); err != nil {
+		t.Fatal(err)
+	}
+
+	// add new empty task
+	testTasklist.AddTask(NewTask())
+
+	testExpected = 64
+	testGot = len(testTasklist)
+	if testGot != testExpected {
+		t.Errorf("Expected TaskList to contain %d tasks, but got %d", testExpected, testGot)
+	}
+
+	taskId := 64
+	testExpected = time.Now().Format(DateLayout) + " " // tasks created by NewTask() have their created date set
+	testGot = testTasklist[taskId-1].String()
+	if testGot != testExpected {
+		t.Errorf("Expected Task[%d] to be [%s], but got [%s]", taskId, testExpected, testGot)
+	}
+	testExpected = 64
+	testGot = testTasklist[taskId-1].Id
+	if testGot != testExpected {
+		t.Errorf("Expected Task[%d] to be [%d], but got [%d]", taskId, testExpected, testGot)
+	}
+	taskId++
+
+	// add parsed task
+	parsed, err := ParseTask("x (C) 2014-01-01 Create golang library documentation @Go +go-todotxt due:2014-01-12")
+	if err != nil {
+		t.Error(err)
+	}
+	testTasklist.AddTask(parsed)
+
+	testExpected = "x (C) 2014-01-01 Create golang library documentation @Go +go-todotxt due:2014-01-12"
+	testGot = testTasklist[taskId-1].String()
+	if testGot != testExpected {
+		t.Errorf("Expected Task[%d] to be [%s], but got [%s]", taskId, testExpected, testGot)
+	}
+	testExpected = 65
+	testGot = testTasklist[taskId-1].Id
+	if testGot != testExpected {
+		t.Errorf("Expected Task[%d] to be [%d], but got [%d]", taskId, testExpected, testGot)
+	}
+	taskId++
+
+	// add selfmade task
+	createdDate := time.Now()
+	testTasklist.AddTask(&Task{
+		CreatedDate: createdDate,
+		Todo:        "Go shopping..",
+		Contexts:    []string{"GroceryStore"},
+	})
+
+	testExpected = createdDate.Format(DateLayout) + " Go shopping.. @GroceryStore"
+	testGot = testTasklist[taskId-1].String()
+	if testGot != testExpected {
+		t.Errorf("Expected Task[%d] to be [%s], but got [%s]", taskId, testExpected, testGot)
+	}
+	testExpected = 66
+	testGot = testTasklist[taskId-1].Id
+	if testGot != testExpected {
+		t.Errorf("Expected Task[%d] to be [%d], but got [%d]", taskId, testExpected, testGot)
+	}
+	taskId++
+
+	// add task with explicit Id, AddTask() should ignore this!
+	testTasklist.AddTask(&Task{
+		Id: 101,
+	})
+
+	testExpected = 67
+	testGot = testTasklist[taskId-1].Id
+	if testGot != testExpected {
+		t.Errorf("Expected Task[%d] to be [%d], but got [%d]", taskId, testExpected, testGot)
+	}
+	taskId++
+}
+
+func TestTaskListRemoveTaskById(t *testing.T) {
+	t.Fail()
+}
+
+func TestTaskListRemoveTask(t *testing.T) {
+	// removes by comparing Task.String() with each other
+	t.Fail()
+}
+
+func TestTaskListFilter(t *testing.T) {
+	t.Fail()
+}
+
+func TestTaskListFilterNot(t *testing.T) {
+	t.Fail()
 }
 
 func TestTaskListReadErrors(t *testing.T) {
