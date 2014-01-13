@@ -42,10 +42,7 @@ go-todotxt requires Go1.1 or higher.
 
 		// Filter list to get only completed tasks
 		completedList := testTasklist.Filter(func(t Task) bool {
-			if t.Completed {
-				return true
-			}
-			return false
+			return t.Completed 
 		})
 		fmt.Print(completedList)
 	}
