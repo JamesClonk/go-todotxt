@@ -39,6 +39,15 @@ go-todotxt requires Go1.1 or higher.
 		fmt.Printf("Task 3: %v\n", tasklist[2])
 		fmt.Printf("Task 4, has priority: %v\n\n", tasklist[3].HasPriority())
 		fmt.Print(tasklist)
+
+		// Filter list to get only completed tasks
+		completedList := testTasklist.Filter(func(t Task) bool {
+			if t.Completed {
+				return true
+			}
+			return false
+		})
+		fmt.Print(completedList)
 	}
 ```
 

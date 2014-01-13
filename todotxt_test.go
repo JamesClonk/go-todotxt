@@ -205,7 +205,13 @@ func TestTaskListWriteFilename(t *testing.T) {
 }
 
 func TestNewTaskList(t *testing.T) {
-	t.Fail()
+	testTasklist := NewTaskList()
+
+	testExpected = 0
+	testGot = len(testTasklist)
+	if testGot != testExpected {
+		t.Errorf("Expected TaskList to contain %d tasks, but got %d", testExpected, testGot)
+	}
 }
 
 func TestTaskListCount(t *testing.T) {
@@ -226,7 +232,8 @@ func TestTaskListAddTask(t *testing.T) {
 	}
 
 	// add new empty task
-	testTasklist.AddTask(NewTask())
+	task := NewTask()
+	testTasklist.AddTask(&task)
 
 	testExpected = 64
 	testGot = len(testTasklist)
@@ -299,21 +306,159 @@ func TestTaskListAddTask(t *testing.T) {
 	taskId++
 }
 
+func TestTaskListGetTask(t *testing.T) {
+	if err := testTasklist.LoadFromFilename(testInputTasklist); err != nil {
+		t.Fatal(err)
+	}
+
+	taskId := 3
+	task, err := testTasklist.GetTask(taskId)
+	if err != nil {
+		t.Error(err)
+	}
+	testExpected = "(B) 2013-12-01 Outline chapter 5 @Computer +Novel Level:5 private:false due:2014-02-17"
+	testGot = task.String()
+	if testGot != testExpected {
+		t.Errorf("Expected Task[%d] to be [%s], but got [%s]", taskId, testExpected, testGot)
+	}
+	testExpected = 3
+	testGot = testTasklist[taskId-1].Id
+	if testGot != testExpected {
+		t.Errorf("Expected Task[%d] to be [%d], but got [%d]", taskId, testExpected, testGot)
+	}
+	taskId++
+}
+
 func TestTaskListRemoveTaskById(t *testing.T) {
-	t.Fail()
+	if err := testTasklist.LoadFromFilename(testInputTasklist); err != nil {
+		t.Fatal(err)
+	}
+
+	taskId := 10
+	if err := testTasklist.RemoveTaskById(taskId); err != nil {
+		t.Error(err)
+	}
+	testExpected = 62
+	testGot = len(testTasklist)
+	if testGot != testExpected {
+		t.Errorf("Expected TaskList to contain %d tasks, but got %d", testExpected, testGot)
+	}
+	task, err := testTasklist.GetTask(taskId)
+	if err == nil || task != nil {
+		t.Errorf("Expected no Task to be found anymore, but got %v", task)
+	}
+
+	taskId = 27
+	if err := testTasklist.RemoveTaskById(taskId); err != nil {
+		t.Error(err)
+	}
+	testExpected = 61
+	testGot = len(testTasklist)
+	if testGot != testExpected {
+		t.Errorf("Expected TaskList to contain %d tasks, but got %d", testExpected, testGot)
+	}
+	task, err = testTasklist.GetTask(taskId)
+	if err == nil || task != nil {
+		t.Errorf("Expected no Task to be found anymore, but got %v", task)
+	}
+
+	taskId = 99
+	if err := testTasklist.RemoveTaskById(taskId); err == nil {
+		t.Errorf("Expected no Task to be found for removal")
+	}
 }
 
 func TestTaskListRemoveTask(t *testing.T) {
-	// removes by comparing Task.String() with each other
-	t.Fail()
+	if err := testTasklist.LoadFromFilename(testInputTasklist); err != nil {
+		t.Fatal(err)
+	}
+
+	taskId := 52 // Is "unique" in tasklist
+	task, err := testTasklist.GetTask(taskId)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if err := testTasklist.RemoveTask(*task); err != nil {
+		t.Error(err)
+	}
+	testExpected = 62
+	testGot = len(testTasklist)
+	if testGot != testExpected {
+		t.Errorf("Expected TaskList to contain %d tasks, but got %d", testExpected, testGot)
+	}
+	task, err = testTasklist.GetTask(taskId)
+	if err == nil || task != nil {
+		t.Errorf("Expected no Task to be found anymore, but got %v", task)
+	}
+
+	taskId = 2 // Exists 3 times in tasklist
+	task, err = testTasklist.GetTask(taskId)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if err := testTasklist.RemoveTask(*task); err != nil {
+		t.Error(err)
+	}
+	testExpected = 59
+	testGot = len(testTasklist)
+	if testGot != testExpected {
+		t.Errorf("Expected TaskList to contain %d tasks, but got %d", testExpected, testGot)
+	}
+	task, err = testTasklist.GetTask(taskId)
+	if err == nil || task != nil {
+		t.Errorf("Expected no Task to be found anymore, but got %v", task)
+	}
+
+	if err := testTasklist.RemoveTask(NewTask()); err == nil {
+		t.Errorf("Expected no Task to be found for removal")
+	}
 }
 
 func TestTaskListFilter(t *testing.T) {
-	t.Fail()
-}
+	if err := testTasklist.LoadFromFilename(testInputTasklist); err != nil {
+		t.Fatal(err)
+	}
 
-func TestTaskListFilterNot(t *testing.T) {
-	t.Fail()
+	// Filter list to get only completed tasks
+	completedList := testTasklist.Filter(func(t Task) bool {
+		if t.Completed {
+			return true
+		}
+		return false
+	})
+	testExpected = 33
+	testGot = len(*completedList)
+	if testGot != testExpected {
+		t.Errorf("Expected TaskList to contain %d tasks, but got %d", testExpected, testGot)
+	}
+
+	// Filter list to get only tasks with a due date
+	dueDateList := testTasklist.Filter(func(t Task) bool {
+		if t.HasDueDate() {
+			return true
+		}
+		return false
+	})
+	testExpected = 26
+	testGot = len(*dueDateList)
+	if testGot != testExpected {
+		t.Errorf("Expected TaskList to contain %d tasks, but got %d", testExpected, testGot)
+	}
+
+	// Filter list to get only tasks with "B" priority
+	prioBList := testTasklist.Filter(func(t Task) bool {
+		if t.HasPriority() && t.Priority == "B" {
+			return true
+		}
+		return false
+	})
+	testExpected = 17
+	testGot = len(*prioBList)
+	if testGot != testExpected {
+		t.Errorf("Expected TaskList to contain %d tasks, but got %d", testExpected, testGot)
+	}
 }
 
 func TestTaskListReadErrors(t *testing.T) {

@@ -10,6 +10,7 @@ package todotxt
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -28,7 +29,13 @@ var (
 	IgnoreComments = true
 )
 
-// String returns a complete tasklist string in todo.txt format.
+// NewTaskList creates a new empty TaskList.
+func NewTaskList() TaskList {
+	tasklist := TaskList{}
+	return tasklist
+}
+
+// String returns a complete list of tasks in todo.txt format.
 func (tasklist TaskList) String() (text string) {
 	for _, task := range tasklist {
 		text += fmt.Sprintf("%s\n", task.String())
@@ -36,8 +43,8 @@ func (tasklist TaskList) String() (text string) {
 	return text
 }
 
-// AddTask appends a task to the current TaskList, and takes care to set the Task.Id correctly, modifying the Task by the given pointer!
-func (tasklist *TaskList) AddTask(task *Task) (err error) {
+// AddTask appends a task to the current TaskList and takes care to set the Task.Id correctly, modifying the Task by the given pointer!
+func (tasklist *TaskList) AddTask(task *Task) {
 	task.Id = 0
 	for _, t := range *tasklist {
 		if t.Id > task.Id {
@@ -47,7 +54,70 @@ func (tasklist *TaskList) AddTask(task *Task) (err error) {
 	task.Id += 1
 
 	*tasklist = append(*tasklist, *task)
-	return
+}
+
+// GetTask returns task by given task 'id' from the TaskList. Returns an error if task could not be found.
+func (tasklist *TaskList) GetTask(id int) (*Task, error) {
+	for _, t := range *tasklist {
+		if t.Id == id {
+			return &t, nil
+		}
+	}
+	return nil, errors.New("task not found")
+}
+
+// RemoveTaskById removes any task with given task 'id' from the TaskList.
+// Returns an error if no task was removed.
+func (tasklist *TaskList) RemoveTaskById(id int) error {
+	var newList TaskList
+
+	found := false
+	for _, t := range *tasklist {
+		if t.Id != id {
+			newList = append(newList, t)
+		} else {
+			found = true
+		}
+	}
+	if !found {
+		return errors.New("task not found")
+	}
+
+	*tasklist = newList
+	return nil
+}
+
+// RemoveTask removes any task from the TaskList with the same String representation as the given task.
+// Returns an error if no task was removed.
+func (tasklist *TaskList) RemoveTask(task Task) error {
+	var newList TaskList
+
+	found := false
+	for _, t := range *tasklist {
+		if t.String() != task.String() {
+			newList = append(newList, t)
+		} else {
+			found = true
+		}
+	}
+	if !found {
+		return errors.New("task not found")
+	}
+
+	*tasklist = newList
+	return nil
+}
+
+// Filter filters the current TaskList for the given predicate (a function that takes a task as input and returns a bool),
+// and returns a new TaskList. The original TaskList is not modified.
+func (tasklist *TaskList) Filter(predicate func(Task) bool) *TaskList {
+	var newList TaskList
+	for _, t := range *tasklist {
+		if predicate(t) {
+			newList = append(newList, t)
+		}
+	}
+	return &newList
 }
 
 // LoadFromFile loads a TaskList from *os.File.

@@ -103,10 +103,10 @@ func (task Task) String() string {
 }
 
 // NewTask creates a new empty Task with default values. (CreatedDate is set to Now())
-func NewTask() *Task {
+func NewTask() Task {
 	task := Task{}
 	task.CreatedDate = time.Now()
-	return &task
+	return task
 }
 
 // ParseTask parses the input text string into a Task struct.
