@@ -329,6 +329,52 @@ func TestTaskListGetTask(t *testing.T) {
 	taskId++
 }
 
+func TestTaskListUpdateTask(t *testing.T) {
+	if err := testTasklist.LoadFromFilename(testInputTasklist); err != nil {
+		t.Fatal(err)
+	}
+
+	taskId := 3
+	task, err := testTasklist.GetTask(taskId)
+	if err != nil {
+		t.Error(err)
+	}
+	testExpected = "(B) 2013-12-01 Outline chapter 5 @Computer +Novel Level:5 private:false due:2014-02-17"
+	testGot = task.String()
+	if testGot != testExpected {
+		t.Errorf("Expected Task[%d] to be [%s], but got [%s]", taskId, testExpected, testGot)
+	}
+	testExpected = 3
+	testGot = testTasklist[taskId-1].Id
+	if testGot != testExpected {
+		t.Errorf("Expected Task[%d] to be [%d], but got [%d]", taskId, testExpected, testGot)
+	}
+
+	task.Priority = "C"
+	task.Todo = "Go home!"
+	date, err := time.Parse(DateLayout, "2011-11-11")
+	if err != nil {
+		t.Error(err)
+	}
+	task.DueDate = date
+	testGot := task
+
+	os.Remove(testOutput)
+	if err := testTasklist.WriteToFilename(testOutput); err != nil {
+		t.Fatal(err)
+	}
+	if err := testTasklist.LoadFromFilename(testOutput); err != nil {
+		t.Fatal(err)
+	}
+	testExpected, err := testTasklist.GetTask(taskId)
+	if err != nil {
+		t.Error(err)
+	}
+	if testGot.Task() != testExpected.Task() {
+		t.Errorf("Expected Task to be [%v]\n, but got [%v]", testExpected, testGot)
+	}
+}
+
 func TestTaskListRemoveTaskById(t *testing.T) {
 	if err := testTasklist.LoadFromFilename(testInputTasklist); err != nil {
 		t.Fatal(err)

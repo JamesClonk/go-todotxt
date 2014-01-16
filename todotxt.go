@@ -43,7 +43,7 @@ func (tasklist TaskList) String() (text string) {
 	return text
 }
 
-// AddTask appends a task to the current TaskList and takes care to set the Task.Id correctly, modifying the Task by the given pointer!
+// AddTask appends a Task to the current TaskList and takes care to set the Task.Id correctly, modifying the Task by the given pointer!
 func (tasklist *TaskList) AddTask(task *Task) {
 	task.Id = 0
 	for _, t := range *tasklist {
@@ -56,18 +56,19 @@ func (tasklist *TaskList) AddTask(task *Task) {
 	*tasklist = append(*tasklist, *task)
 }
 
-// GetTask returns task by given task 'id' from the TaskList. Returns an error if task could not be found.
+// GetTask returns a Task by given task 'id' from the TaskList. The returned Task pointer can be used to update the Task inside the TaskList.
+// Returns an error if Task could not be found.
 func (tasklist *TaskList) GetTask(id int) (*Task, error) {
-	for _, t := range *tasklist {
-		if t.Id == id {
-			return &t, nil
+	for i := range *tasklist {
+		if ([]Task(*tasklist))[i].Id == id {
+			return &([]Task(*tasklist))[i], nil
 		}
 	}
 	return nil, errors.New("task not found")
 }
 
-// RemoveTaskById removes any task with given task 'id' from the TaskList.
-// Returns an error if no task was removed.
+// RemoveTaskById removes any Task with given Task 'id' from the TaskList.
+// Returns an error if no Task was removed.
 func (tasklist *TaskList) RemoveTaskById(id int) error {
 	var newList TaskList
 
@@ -87,8 +88,8 @@ func (tasklist *TaskList) RemoveTaskById(id int) error {
 	return nil
 }
 
-// RemoveTask removes any task from the TaskList with the same String representation as the given task.
-// Returns an error if no task was removed.
+// RemoveTask removes any Task from the TaskList with the same String representation as the given Task.
+// Returns an error if no Task was removed.
 func (tasklist *TaskList) RemoveTask(task Task) error {
 	var newList TaskList
 
