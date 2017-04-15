@@ -70,3 +70,7 @@ See [GoDoc - Documentation](https://godoc.org/github.com/JamesClonk/go-todotxt) 
 
 The source files are distributed under the [Mozilla Public License, version 2.0](http://mozilla.org/MPL/2.0/), unless otherwise noted.  
 Please read the [FAQ](http://www.mozilla.org/MPL/2.0/FAQ.html) if you have further questions regarding the license. 
+
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/JamesClonk/go-todotxt/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+
