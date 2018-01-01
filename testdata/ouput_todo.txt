@@ -1,6 +1,6 @@
 2013-02-22 Pick up milk @GroceryStore
 x Download Todo.txt mobile app @Phone
-(B) 2013-12-01 Outline chapter 5 @Computer +Novel Level:5 private:false due:2014-02-17
+(C) 2013-12-01 Go home! @Computer +Novel Level:5 private:false due:2011-11-11
 x 2014-01-02 (B) 2013-12-30 Create golang library test cases @Go +go-todotxt
 x 2014-01-03 2014-01-01 Create some more golang library test cases @Go +go-todotxt
 (B) 2013-12-01 Outline chapter 5 @Computer +Novel Level:5 private:false due:2014-02-17
